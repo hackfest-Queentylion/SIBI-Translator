@@ -1,5 +1,16 @@
-package com.queentylion.libgoogle
+package com.queentylion.sibitranslator
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
 import com.google.api.gax.rpc.ClientStream
 import com.google.api.gax.rpc.ResponseObserver
 import com.google.api.gax.rpc.StreamController
@@ -11,14 +22,14 @@ import com.google.cloud.speech.v1.StreamingRecognitionResult
 import com.google.cloud.speech.v1.StreamingRecognizeRequest
 import com.google.cloud.speech.v1.StreamingRecognizeResponse
 import com.google.protobuf.ByteString
-import javax.sound.sampled.AudioFormat
-import javax.sound.sampled.AudioInputStream
-import javax.sound.sampled.AudioSystem
-import javax.sound.sampled.DataLine
-import javax.sound.sampled.TargetDataLine
-import kotlin.system.exitProcess
+import kotlin.jvm.Throws
+import android.Manifest
 
-class GoogleApi {
+class TranslatorViewModel(@SuppressLint("StaticFieldLeak") private val context: Context)
+    : ViewModel() {
+    var translatedText by mutableStateOf("Start Speaking")
+    private set
+
     @Throws(Exception::class)
     fun speechToText() {
         var responseObserver: ResponseObserver<StreamingRecognizeResponse>? = null
@@ -35,7 +46,7 @@ class GoogleApi {
                             val result = results[0]
                             if (result.isFinal) {
                                 val alternative = result.alternativesList[0]
-                                println(alternative.transcript)
+                                translatedText += alternative
                             }
                         }
                     }
@@ -72,38 +83,51 @@ class GoogleApi {
                 clientStream.send(request)
                 // SampleRate:16000Hz, SampleSizeInBits: 16, Number of channels: 1, Signed: true,
                 // bigEndian: false
-                val audioFormat =
-                    AudioFormat(16000f, 16, 1, true, false)
-                val targetInfo: DataLine.Info = DataLine.Info(
-                    TargetDataLine::class.java,
+
+                val sampleRate = 16000 // 16000 Hz
+                val channelConfig = AudioFormat.CHANNEL_IN_MONO
+                val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+                val bufferSize = AudioRecord.getMinBufferSize(
+                    sampleRate,
+                    channelConfig,
                     audioFormat
-                ) // Set the system information to read from the microphone audio stream
-                if (!AudioSystem.isLineSupported(targetInfo)) {
-                    println("Microphone not supported")
-                    exitProcess(0)
+                )
+
+                if (ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                    // Permission is not granted
+                    return
                 }
-                // Target data line captures the audio stream the microphone produces.
-                val targetDataLine = AudioSystem.getLine(targetInfo) as TargetDataLine
-                targetDataLine.open(audioFormat)
-                targetDataLine.start()
+                val audioRecord = AudioRecord(
+                    MediaRecorder.AudioSource.MIC,
+                    sampleRate,
+                    channelConfig,
+                    audioFormat,
+                    bufferSize
+                )
+
+                audioRecord.startRecording()
                 println("Start speaking")
+
                 val startTime = System.currentTimeMillis()
-                // Audio Input Stream
-                val audio = AudioInputStream(targetDataLine)
+                val audioData = ByteArray(bufferSize)
                 while (true) {
                     val estimatedTime = System.currentTimeMillis() - startTime
-                    val data = ByteArray(6400)
-                    audio.read(data)
                     if (estimatedTime > 60000) { // 60 seconds
                         println("Stop speaking.")
-                        targetDataLine.stop()
-                        targetDataLine.close()
                         break
                     }
-                    request = StreamingRecognizeRequest.newBuilder()
-                        .setAudioContent(ByteString.copyFrom(data))
-                        .build()
-                    clientStream.send(request)
+
+                    val readSize = audioRecord.read(audioData, 0, bufferSize)
+                    if (readSize > 0) {
+                        // Process the audio audioData, send to streaming recognize request
+                        request = StreamingRecognizeRequest.newBuilder()
+                            .setAudioContent(ByteString.copyFrom(audioData, 0, readSize))
+                            .build()
+                        clientStream.send(request)
+                    }
                 }
             }
         } catch (e: Exception) {
