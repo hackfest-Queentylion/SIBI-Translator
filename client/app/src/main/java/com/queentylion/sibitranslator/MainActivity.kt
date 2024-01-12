@@ -1,12 +1,16 @@
 package com.queentylion.sibitranslator
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration.UI_MODE_NIGHT_NO
 import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,8 +32,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,13 +44,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+
 import androidx.lifecycle.ViewModelProvider
 import com.queentylion.sibitranslator.presentation.sign_in.GoogleAuthUiClient
+
 import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
+import java.util.Locale
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -72,29 +80,12 @@ import kotlin.math.sign
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var speechRecognizer: SpeechRecognizer
+    private lateinit var recognizerIntent: Intent
+
     private fun checkPermissionAndStart() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_AUDIO_PERMISSION_CODE)
-        } else {
-            startSpeechToText()
-        }
-    }
-
-    private fun startSpeechToText() {
-        // Get your ViewModel instance
-        val translatorViewModel: TranslatorViewModel by viewModels()
-        translatorViewModel.speechToText()
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_AUDIO_PERMISSION_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startSpeechToText()
-            } else {
-                // Permission denied, handle as appropriate
-            }
         }
     }
 
@@ -112,11 +103,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
-        val translatorViewModel: TranslatorViewModel by viewModels {
-            ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-            TranslatorViewModelFactory(this)
-        }
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
 
         setContent {
             SIBITranslatorTheme {
@@ -202,10 +192,11 @@ class MainActivity : ComponentActivity() {
 
                         composable("translator") {
                             Translator(
-                                    Modifier
-                                            .fillMaxSize(),
-                                    translatorViewModel,
-                                    onRequestPermission = { checkPermissionAndStart() }
+                                Modifier
+                                    .fillMaxSize(),
+                                onRequestPermission = { checkPermissionAndStart() },
+                                speechRecognizer = speechRecognizer,
+                                recognizerIntent = recognizerIntent
                             )
                         }
                     }
