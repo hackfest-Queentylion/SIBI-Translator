@@ -1,4 +1,6 @@
 package com.queentylion.sibitranslator.presentation.sign_in
 
-class SignInState {
-}
+data class SignInState(
+        val isSignInSuccessful: Boolean = false,
+        val signInError: String? = null
+)

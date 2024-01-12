@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "901798999714",
+    "project_id": "sibi-translator",
+    "storage_bucket": "sibi-translator.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:901798999714:android:c7de2f91613d30c60a49fb",
+        "android_client_info": {
+          "package_name": "com.queentylion.sibitranslator"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "901798999714-f37qfuja0u6195jmsg6edoi2b9oa9koe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.queentylion.sibitranslator",
+            "certificate_hash": "4722a06edf0c533eaa2e8c588eebc8632e12961a"
+          }
+        },
+        {
+          "client_id": "901798999714-e0bc8s2tn6ebckj9e3e7a7s0m57jkmeb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvxj09erW-AncKW95O-tH_U2iBbk5v3wI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "901798999714-e0bc8s2tn6ebckj9e3e7a7s0m57jkmeb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

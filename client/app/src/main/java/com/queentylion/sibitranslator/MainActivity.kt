@@ -43,7 +43,32 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import com.queentylion.sibitranslator.presentation.sign_in.GoogleAuthUiClient
 import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
+
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.Surface
+//import androidx.compose.material.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.google.android.gms.auth.api.identity.Identity
+import com.queentylion.sibitranslator.presentation.profile.ProfileScreen
+import com.queentylion.sibitranslator.presentation.sign_in.SignInScreen
+import com.queentylion.sibitranslator.presentation.sign_in.SignInViewModel
+import com.queentylion.sibitranslator.presentation.translator.Translator
+import kotlinx.coroutines.launch
+import kotlin.math.sign
 
 class MainActivity : ComponentActivity() {
 
@@ -77,6 +102,13 @@ class MainActivity : ComponentActivity() {
         private const val REQUEST_AUDIO_PERMISSION_CODE = 1
     }
 
+    private val googleAuthUiClient by lazy {
+        GoogleAuthUiClient(
+                context = applicationContext,
+                oneTapClient = Identity.getSignInClient(applicationContext)
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -88,12 +120,96 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             SIBITranslatorTheme {
-                Translator(
-                    Modifier
-                        .fillMaxSize(),
-                    translatorViewModel,
-                    onRequestPermission = { checkPermissionAndStart() }
-                )
+                Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = Color(0xFF191f28)
+                ) {
+                    val navController = rememberNavController()
+                    NavHost(navController = navController, startDestination = "sign_in") {
+                        composable("sign_in") {
+                            val viewModel = viewModel<SignInViewModel>()
+                            val state by viewModel.state.collectAsStateWithLifecycle()
+
+                            LaunchedEffect(key1 = Unit) {
+                                if(googleAuthUiClient.getSignedInUser() != null) {
+                                    navController.navigate("profile")
+                                }
+                            }
+
+                            val launcher = rememberLauncherForActivityResult(
+                                    contract = ActivityResultContracts.StartIntentSenderForResult(),
+                                    onResult = { result ->
+                                        if(result.resultCode == RESULT_OK) {
+                                            lifecycleScope.launch {
+                                                val signInResult = googleAuthUiClient.signInWithIntent(
+                                                        intent = result.data ?: return@launch
+                                                )
+                                                viewModel.onSignInResult(signInResult)
+                                            }
+                                        }
+                                    }
+                            )
+
+                            LaunchedEffect(key1 = state.isSignInSuccessful) {
+                                if(state.isSignInSuccessful) {
+                                    Toast.makeText(
+                                            applicationContext,
+                                            "Sign in successful",
+                                            Toast.LENGTH_LONG
+                                    ).show()
+
+                                    navController.navigate("profile")
+                                    viewModel.resetState()
+                                }
+                            }
+
+                            SignInScreen(
+                                    state = state,
+                                    onSignInClick = {
+                                        lifecycleScope.launch {
+                                            val signInIntentSender = googleAuthUiClient.signIn()
+                                            launcher.launch(
+                                                    IntentSenderRequest.Builder(
+                                                            signInIntentSender ?: return@launch
+                                                    ).build()
+                                            )
+                                        }
+                                    }
+                            )
+                        }
+                        composable("profile") {
+                            ProfileScreen(
+                                    userData = googleAuthUiClient.getSignedInUser(),
+                                    onSignOut = {
+                                        lifecycleScope.launch {
+                                            googleAuthUiClient.signOut()
+                                            Toast.makeText(
+                                                    applicationContext,
+                                                    "Signed out",
+                                                    Toast.LENGTH_LONG
+                                            ).show()
+
+                                            navController.popBackStack()
+                                        }
+                                    },
+                                    onTranslate = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("translator")
+                                        }
+                                    }
+                            )
+                        }
+
+                        composable("translator") {
+                            Translator(
+                                    Modifier
+                                            .fillMaxSize(),
+                                    translatorViewModel,
+                                    onRequestPermission = { checkPermissionAndStart() }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -115,95 +231,5 @@ fun LanguageBox(text: String) {
             color = Color(0xFFccccb5),
             style = MaterialTheme.typography.titleMedium,
         )
-    }
-}
-
-@Composable
-fun Translator(
-    modifier: Modifier = Modifier,
-    translatorViewModel: TranslatorViewModel,
-    onRequestPermission: () -> Unit
-) {
-
-    var isTextToSpeech by rememberSaveable { mutableStateOf(true) }
-    var isRecording by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    Surface(
-        modifier = modifier,
-        color = Color(0xFF191f28)
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        vertical = 35.dp,
-                        horizontal = 45.dp
-                    )
-                    .verticalScroll(rememberScrollState())
-                    .weight(2F)
-            ) {
-                Text(
-                    style = MaterialTheme.typography.displaySmall,
-                    color = Color(0xFF4b5975),
-                    text = translatorViewModel.translatedText
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1F)
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
-                    .background(Color(0xFF141a22))
-                    .padding(top = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                Row(
-                    modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    LanguageBox(text = "Speech")
-                    FloatingActionButton(
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .size(30.dp),
-                        containerColor = Color.Transparent,
-                        onClick = { isTextToSpeech = !isTextToSpeech }
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_switch),
-                            contentDescription = "what",
-                            modifier = Modifier
-                                .size(30.dp),
-                            colorFilter = ColorFilter.tint(Color(0xFFc69f68))
-                        )
-                    }
-                    LanguageBox(text = "Text")
-                }
-                FloatingActionButton(
-                    shape = CircleShape,
-                    containerColor = Color(0xFFc69f68),
-                    contentColor = Color(0xFF141a22),
-                    modifier = Modifier
-                        .size(80.dp),
-                    onClick = {
-                        isRecording = !isRecording
-                        if (isRecording) {
-                            onRequestPermission()
-                        }
-                    }
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_microphone),
-                        contentDescription = "what",
-                        modifier = Modifier
-                            .size(28.dp)
-                    )
-                }
-            }
-        }
     }
 }
