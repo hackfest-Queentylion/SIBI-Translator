@@ -37,7 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.queentylion.sibitranslator.LanguageBox
+import com.queentylion.sibitranslator.presentation.LanguageBox
 import com.queentylion.sibitranslator.R
 
 @Composable
