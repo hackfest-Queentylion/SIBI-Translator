@@ -60,8 +60,9 @@ class MainActivity : ComponentActivity() {
     private fun checkPermissionAndStart() {
         if (ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
-            ) {
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_AUDIO_PERMISSION_CODE
@@ -75,8 +76,8 @@ class MainActivity : ComponentActivity() {
 
     private val googleAuthUiClient by lazy {
         GoogleAuthUiClient(
-                context = applicationContext,
-                oneTapClient = Identity.getSignInClient(applicationContext)
+            context = applicationContext,
+            oneTapClient = Identity.getSignInClient(applicationContext)
         )
     }
 
@@ -85,15 +86,18 @@ class MainActivity : ComponentActivity() {
 
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
         recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+        )
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id")
 
         setContent {
             SIBITranslatorTheme {
                 Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = Color(0xFF191f28)
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFF191f28)
                 ) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "sign_in") {
@@ -102,31 +106,31 @@ class MainActivity : ComponentActivity() {
                             val state by viewModel.state.collectAsStateWithLifecycle()
 
                             LaunchedEffect(key1 = Unit) {
-                                if(googleAuthUiClient.getSignedInUser() != null) {
+                                if (googleAuthUiClient.getSignedInUser() != null) {
                                     navController.navigate("profile")
                                 }
                             }
 
                             val launcher = rememberLauncherForActivityResult(
-                                    contract = ActivityResultContracts.StartIntentSenderForResult(),
-                                    onResult = { result ->
-                                        if(result.resultCode == RESULT_OK) {
-                                            lifecycleScope.launch {
-                                                val signInResult = googleAuthUiClient.signInWithIntent(
-                                                        intent = result.data ?: return@launch
-                                                )
-                                                viewModel.onSignInResult(signInResult)
-                                            }
+                                contract = ActivityResultContracts.StartIntentSenderForResult(),
+                                onResult = { result ->
+                                    if (result.resultCode == RESULT_OK) {
+                                        lifecycleScope.launch {
+                                            val signInResult = googleAuthUiClient.signInWithIntent(
+                                                intent = result.data ?: return@launch
+                                            )
+                                            viewModel.onSignInResult(signInResult)
                                         }
                                     }
+                                }
                             )
 
                             LaunchedEffect(key1 = state.isSignInSuccessful) {
-                                if(state.isSignInSuccessful) {
+                                if (state.isSignInSuccessful) {
                                     Toast.makeText(
-                                            applicationContext,
-                                            "Sign in successful",
-                                            Toast.LENGTH_LONG
+                                        applicationContext,
+                                        "Sign in successful",
+                                        Toast.LENGTH_LONG
                                     ).show()
 
                                     navController.navigate("profile")
@@ -135,39 +139,39 @@ class MainActivity : ComponentActivity() {
                             }
 
                             SignInScreen(
-                                    state = state,
-                                    onSignInClick = {
-                                        lifecycleScope.launch {
-                                            val signInIntentSender = googleAuthUiClient.signIn()
-                                            launcher.launch(
-                                                    IntentSenderRequest.Builder(
-                                                            signInIntentSender ?: return@launch
-                                                    ).build()
-                                            )
-                                        }
+                                state = state,
+                                onSignInClick = {
+                                    lifecycleScope.launch {
+                                        val signInIntentSender = googleAuthUiClient.signIn()
+                                        launcher.launch(
+                                            IntentSenderRequest.Builder(
+                                                signInIntentSender ?: return@launch
+                                            ).build()
+                                        )
                                     }
+                                }
                             )
                         }
                         composable("profile") {
                             ProfileScreen(
-                                    userData = googleAuthUiClient.getSignedInUser(),
-                                    onSignOut = {
-                                        lifecycleScope.launch {
-                                            googleAuthUiClient.signOut()
-                                            Toast.makeText(
-                                                    applicationContext,
-                                                    "Signed out",
-                                                    Toast.LENGTH_LONG
-                                            ).show()
+                                userData = googleAuthUiClient.getSignedInUser(),
+                                onSignOut = {
+                                    lifecycleScope.launch {
+                                        googleAuthUiClient.signOut()
+                                        Toast.makeText(
+                                            applicationContext,
+                                            "Signed out",
+                                            Toast.LENGTH_LONG
+                                        ).show()
 
-                                            navController.popBackStack()
-                                        }
-                                    },
-                                    onTranslate = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("translator")
-                                        }
+                                        navController.popBackStack()
                                     }
+                                },
+                                onTranslate = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("translator")
+                                    }
+                                }
                             )
                         }
 

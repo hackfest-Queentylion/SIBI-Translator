@@ -39,6 +39,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.queentylion.sibitranslator.presentation.LanguageBox
 import com.queentylion.sibitranslator.R
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.remember
 
 @Composable
 fun Translator(
@@ -56,6 +59,8 @@ fun Translator(
         mutableStateOf("Say Something")
     }
     val updatedTranslatedText by rememberUpdatedState(translatedText)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed = interactionSource.collectIsPressedAsState().value
 
     fun updateTranslatedText(newText: String) {
         translatedText = newText
@@ -75,6 +80,8 @@ fun Translator(
         override fun onEndOfSpeech() {}
         override fun onError(error: Int) {
             Log.e("Speech Recognition", "Error code: $error")
+            updateTranslatedText("Say something")
+            isRecording = false
         }
         override fun onResults(results: Bundle?) {
             Log.d("Speech Result", "onResults called")
@@ -160,10 +167,11 @@ fun Translator(
                 }
                 FloatingActionButton(
                     shape = CircleShape,
-                    containerColor = Color(0xFFc69f68),
+                    containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
                     contentColor = Color(0xFF141a22),
                     modifier = Modifier
                         .size(80.dp),
+                    interactionSource = interactionSource,
                     onClick = {
                         isRecording = !isRecording
                         if (isRecording) {
