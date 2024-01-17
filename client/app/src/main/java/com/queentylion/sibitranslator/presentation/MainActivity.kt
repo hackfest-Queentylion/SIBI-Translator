@@ -1,6 +1,8 @@
 package com.queentylion.sibitranslator.presentation
 
 import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -50,12 +52,18 @@ import com.queentylion.sibitranslator.presentation.profile.ProfileScreen
 import com.queentylion.sibitranslator.presentation.sign_in.SignInScreen
 import com.queentylion.sibitranslator.presentation.sign_in.SignInViewModel
 import com.queentylion.sibitranslator.presentation.translator.Translator
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var recognizerIntent: Intent
+
+    @Inject
+    lateinit var bluetoothAdapter: BluetoothAdapter
 
     private fun checkPermissionAndStart() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -73,6 +81,25 @@ class MainActivity : ComponentActivity() {
                 oneTapClient = Identity.getSignInClient(applicationContext)
         )
     }
+
+    private var isBluetootDialogAlreadyShown = false
+    private fun showBluetoothDialog(){
+        if(!bluetoothAdapter.isEnabled){
+            if(!isBluetootDialogAlreadyShown){
+                val enableBluetoothIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                startBluetoothIntentForResult.launch(enableBluetoothIntent)
+                isBluetootDialogAlreadyShown = true
+            }
+        }
+    }
+
+    private val startBluetoothIntentForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()){ result ->
+            isBluetootDialogAlreadyShown = false
+            if(result.resultCode != Activity.RESULT_OK){
+                showBluetoothDialog()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -160,7 +187,49 @@ class MainActivity : ComponentActivity() {
                                         lifecycleScope.launch {
                                             navController.navigate("translator")
                                         }
+                                    },
+                                    onBluetooth = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("profile_connected")
+                                        }
+                                    },
+                                    isBluetoothConnected = false,
+                                    onBluetoothStateChanged = {
+                                        showBluetoothDialog()
                                     }
+                            )
+                        }
+
+                        composable("profile_connected") {
+                            ProfileScreen(
+                                userData = googleAuthUiClient.getSignedInUser(),
+                                onSignOut = {
+                                    lifecycleScope.launch {
+                                        googleAuthUiClient.signOut()
+                                        Toast.makeText(
+                                            applicationContext,
+                                            "Signed out",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+
+                                        navController.popBackStack()
+                                    }
+                                },
+                                onTranslate = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("translator")
+                                    }
+                                },
+                                onBluetooth = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("profile_connected")
+
+                                    }
+                                },
+                                isBluetoothConnected = true,
+                                onBluetoothStateChanged = {
+                                    showBluetoothDialog()
+                                }
                             )
                         }
 
@@ -177,6 +246,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        showBluetoothDialog()
     }
 }
 
