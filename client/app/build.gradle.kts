@@ -76,12 +76,15 @@ dependencies {
 
     //DI
     implementation ("androidx.hilt:hilt-navigation-compose:1.0.0")
-    implementation ("com.google.dagger:hilt-android:2.42")
-    kapt ("com.google.dagger:hilt-android-compiler:2.42")
+    implementation ("com.google.dagger:hilt-android:2.48")
+    kapt ("com.google.dagger:hilt-android-compiler:2.48")
     kapt ("androidx.hilt:hilt-compiler:1.0.0")
 
     // Auth
     implementation("com.google.auth:google-auth-library-oauth2-http:1.20.0")
+
+    //Permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.21.1-beta")
 
     testImplementation("junit:junit:4.13.2")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

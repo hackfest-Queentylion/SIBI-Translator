@@ -1,7 +1,7 @@
 package com.queentylion.sibitranslator.data
 
 data class GloveResult(
-    val flexDegree: FloatArray,
+    val flexDegree: IntArray,
     val connectionState: ConnectionState
 ) {
     override fun equals(other: Any?): Boolean {

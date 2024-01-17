@@ -1,6 +1,8 @@
 package com.queentylion.sibitranslator.presentation
 
 import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -61,14 +63,22 @@ import com.queentylion.sibitranslator.presentation.sign_in.SignInScreen
 import com.queentylion.sibitranslator.presentation.sign_in.SignInViewModel
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.presentation.translator.Translator
-import kotlinx.coroutines.launch
 
+import dagger.hilt.android.AndroidEntryPoint
+import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var recognizerIntent: Intent
     private lateinit var databaseReference: DatabaseReference
     private lateinit var textToSpeech: TextToSpeech
+
+    @Inject
+    lateinit var bluetoothAdapter: BluetoothAdapter
 
     private fun checkPermissionAndStart() {
         if (ContextCompat.checkSelfPermission(
@@ -93,6 +103,25 @@ class MainActivity : ComponentActivity() {
             oneTapClient = Identity.getSignInClient(applicationContext)
         )
     }
+
+    private var isBluetootDialogAlreadyShown = false
+    private fun showBluetoothDialog(){
+        if(!bluetoothAdapter.isEnabled){
+            if(!isBluetootDialogAlreadyShown){
+                val enableBluetoothIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                startBluetoothIntentForResult.launch(enableBluetoothIntent)
+                isBluetootDialogAlreadyShown = true
+            }
+        }
+    }
+
+    private val startBluetoothIntentForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()){ result ->
+            isBluetootDialogAlreadyShown = false
+            if(result.resultCode != Activity.RESULT_OK){
+                showBluetoothDialog()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -191,6 +220,38 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("profile") {
                             ProfileScreen(
+                                    userData = googleAuthUiClient.getSignedInUser(),
+                                    onSignOut = {
+                                        lifecycleScope.launch {
+                                            googleAuthUiClient.signOut()
+                                            Toast.makeText(
+                                                    applicationContext,
+                                                    "Signed out",
+                                                    Toast.LENGTH_LONG
+                                            ).show()
+
+                                            navController.navigate("sign_in")
+                                        }
+                                    },
+                                    onTranslate = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("translator")
+                                        }
+                                    },
+                                    onBluetooth = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("profile_connected")
+                                        }
+                                    },
+                                    isBluetoothConnected = false,
+                                    onBluetoothStateChanged = {
+                                        showBluetoothDialog()
+                                    }
+                            )
+                        }
+
+                        composable("profile_connected") {
+                            ProfileScreen(
                                 userData = googleAuthUiClient.getSignedInUser(),
                                 onSignOut = {
                                     lifecycleScope.launch {
@@ -201,13 +262,25 @@ class MainActivity : ComponentActivity() {
                                             Toast.LENGTH_LONG
                                         ).show()
 
-                                        navController.navigate("sign_in")
+                                        navController.popBackStack()
                                     }
                                 },
                                 onTranslate = {
                                     lifecycleScope.launch {
                                         navController.navigate("translator")
                                     }
+                                },
+                                onBluetooth = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("profile_connected")
+
+                                    }
+                                },
+                                isBluetoothConnected = true,
+                                onBluetoothStateChanged = {
+                                    navController.navigate("sign_in")
+                                    showBluetoothDialog()
+
                                 }
                             )
                         }
@@ -290,6 +363,11 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+
+    override fun onStart() {
+        super.onStart()
+        showBluetoothDialog()
+    }
 }
 
 @Composable
