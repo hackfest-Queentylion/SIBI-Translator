@@ -67,12 +67,12 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
 
-    implementation ("androidx.lifecycle:lifecycle-runtime-compose:2.6.0")
+    implementation ("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
     implementation("com.google.firebase:firebase-auth-ktx:22.3.0")
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation("com.google.android.gms:play-services-auth:20.4.0")
     implementation("androidx.navigation:navigation-compose:2.7.6")
     implementation("io.coil-kt:coil-compose:2.2.2")
-    implementation("androidx.compose.material:material:1.2.0")
+    implementation("androidx.compose.material:material:1.5.4")
 
     //DI
     implementation ("androidx.hilt:hilt-navigation-compose:1.0.0")
@@ -91,10 +91,18 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     implementation("io.grpc:grpc-okhttp:1.59.1")
     implementation("io.grpc:grpc-protobuf:1.59.1")
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
     implementation("io.grpc:grpc-stub:1.59.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.08.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Import the BoM for the Firebase platform
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+
+    // Add the dependency for the Realtime Database library
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation("com.google.firebase:firebase-database")
 }
