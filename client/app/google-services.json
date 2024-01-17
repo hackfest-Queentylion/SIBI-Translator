@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "901798999714",
+    "firebase_url": "https://sibi-translator-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "sibi-translator",
     "storage_bucket": "sibi-translator.appspot.com"
   },
