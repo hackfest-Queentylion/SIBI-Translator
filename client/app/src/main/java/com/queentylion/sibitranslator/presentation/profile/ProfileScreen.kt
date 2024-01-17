@@ -63,7 +63,7 @@ fun ProfileScreen(
                     model = userData.profilePictureUrl,
                     contentDescription = "Profile picture",
                     modifier = Modifier
-                        .size(150.dp)
+                        .size(100.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
             )
@@ -73,8 +73,9 @@ fun ProfileScreen(
             Text(
                     text = userData.username,
                     textAlign = TextAlign.Center,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -90,8 +91,13 @@ fun ProfileScreen(
         }
 
         if(!isBluetoothConnected) {
-            Button(onClick = onBluetooth) {
-                Text(text = "Start Connection")
+            Button(onClick = onBluetooth,
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color(0xFFc69f68),
+                    contentColor = Color(0xFF191F28)
+                )
+            ) {
+                Text(text = "Start Connection", color = Color(0xFF191F28))
             }
         } else {
             SystemBroadcastReceiver(systemAction = BluetoothAdapter.ACTION_STATE_CHANGED){ bluetoothState ->
@@ -138,8 +144,8 @@ fun ProfileScreen(
             }
 
             Box(
-                modifier = Modifier
-                    .fillMaxSize(),
+//                modifier = Modifier
+//                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ){
                 Column(
@@ -148,7 +154,7 @@ fun ProfileScreen(
                         .aspectRatio(1f)
                         .border(
                             BorderStroke(
-                                5.dp, Color.Blue
+                                5.dp, Color(0xFFc69f68)
                             ),
                             RoundedCornerShape(10.dp)
                         ),
@@ -165,7 +171,8 @@ fun ProfileScreen(
                             CircularProgressIndicator()
                             if(viewModel.initializingMessage != null){
                                 Text(
-                                    text = viewModel.initializingMessage!!
+                                    text = viewModel.initializingMessage!!,
+                                    color = Color(0xFFc69f68),
                                 )
                             }
                         }
@@ -174,7 +181,8 @@ fun ProfileScreen(
                             text = "Go to the app setting and allow the missing permissions.",
                             style = MaterialTheme.typography.body2,
                             modifier = Modifier.padding(10.dp),
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            color = Color(0xFF191F28)
                         )
                     }else if(viewModel.errorMessage != null){
                         Column(
@@ -193,7 +201,7 @@ fun ProfileScreen(
                                 }
                             ) {
                                 Text(
-                                    "Try again"
+                                    text = "Try again", color = Color(0xFF191F28)
                                 )
                             }
                         }
@@ -205,30 +213,35 @@ fun ProfileScreen(
                         ){
                             Text(
                                 text = "Finger 1: ${viewModel.flexResistance[0]}",
-                                style = MaterialTheme.typography.h6
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
                             )
                             Text(
                                 text = "Finger 2: ${viewModel.flexResistance[1]}",
-                                style = MaterialTheme.typography.h6
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
                             )
                             Text(
                                 text = "Finger 3: ${viewModel.flexResistance[2]}",
-                                style = MaterialTheme.typography.h6
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
                             )
                             Text(
                                 text = "Finger 4: ${viewModel.flexResistance[3]}",
-                                style = MaterialTheme.typography.h6
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
                             )
                             Text(
                                 text = "Finger 5: ${viewModel.flexResistance[4]}",
-                                style = MaterialTheme.typography.h6
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
                             )
                         }
                     }else if(bleConnectionState == ConnectionState.Disconnected){
                         Button(onClick = {
                             viewModel.initializeConnection()
                         }) {
-                            Text("Initialize again")
+                            Text(text = "Initialize again", color = Color(0xFF191F28))
                         }
                     }
                 }

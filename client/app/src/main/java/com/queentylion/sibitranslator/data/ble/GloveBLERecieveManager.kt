@@ -126,33 +126,6 @@ class GloveBLERecieveManager @Inject constructor(
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
-//            val characteristic = findCharacteristics(GLOVE_FLEX_SERVICE_UUID, TEMP_HUMIDITY_CHARACTERISTICS_UUID)
-//            if(characteristic == null){
-//                coroutineScope.launch {
-//                    data.emit(Resource.Error(errorMessage = "Could not find temp and humidity publisher"))
-//                }
-//                return
-//            }
-//            enableNotification(characteristic)
-
-//            val characteristicsUuids = listOf(
-//                P0_CHARACTERISTICS_UUID,
-//                P1_CHARACTERISTICS_UUID,
-//                P2_CHARACTERISTICS_UUID,
-//                P3_CHARACTERISTICS_UUID,
-//                P4_CHARACTERISTICS_UUID
-//            )
-
-//            for( uuid in characteristicsUuids) {
-//                val characteristic = findCharacteristics(GLOVE_FLEX_SERVICE_UUID,uuid)
-//                if( characteristic == null ) {
-//                    coroutineScope.launch {
-//                        data.emit(Resource.Error(errorMessage = "could not find characteristic with UUID: $uuid"))
-//                    }
-//                    return
-//                }
-//                enableNotification(characteristic)
-//            }
             enableNotification(gatt)
         }
 
