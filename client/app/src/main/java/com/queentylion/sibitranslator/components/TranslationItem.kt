@@ -1,5 +1,6 @@
 package com.queentylion.sibitranslator.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -27,14 +27,16 @@ import androidx.compose.ui.unit.dp
 fun TranslationItem(
     text: String,
     isFavorite: Boolean,
-    onFavorite: () -> Unit
+    onFavorite: () -> Unit,
+    onClicked: () -> Unit
 ) {
     var favorite by rememberSaveable { mutableStateOf(isFavorite) }
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable {
+            onClicked() },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         Box(
             modifier = Modifier.width(300.dp)

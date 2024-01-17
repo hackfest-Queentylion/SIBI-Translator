@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -46,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.firebase.Firebase
 import com.google.firebase.database.DatabaseReference
@@ -58,7 +61,6 @@ import com.queentylion.sibitranslator.presentation.sign_in.SignInScreen
 import com.queentylion.sibitranslator.presentation.sign_in.SignInViewModel
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.presentation.translator.Translator
-import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var recognizerIntent: Intent
     private lateinit var databaseReference: DatabaseReference
+    private lateinit var textToSpeech: TextToSpeech
 
     private fun checkPermissionAndStart() {
         if (ContextCompat.checkSelfPermission(
@@ -98,10 +101,21 @@ class MainActivity : ComponentActivity() {
         recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
         recognizerIntent.putExtra(
             RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
         )
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id")
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+
+        textToSpeech = TextToSpeech(this) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val result = textToSpeech.setLanguage(Locale.forLanguageTag("id"))
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("TTS", "This Language is not supported")
+                }
+            } else {
+                Log.e("TTS", "Initialization Failed!")
+            }
+        }
 
         databaseReference =
             Firebase
@@ -123,6 +137,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "sign_in") {
+
                         composable("sign_in") {
                             val viewModel = viewModel<SignInViewModel>()
                             val state by viewModel.state.collectAsStateWithLifecycle()
@@ -197,49 +212,64 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable("translator") {
-                            Translator(
-                                Modifier
-                                    .fillMaxSize(),
-                                onRequestPermission = { checkPermissionAndStart() },
-                                speechRecognizer = speechRecognizer,
-                                recognizerIntent = recognizerIntent,
-                                databaseReference = databaseReference,
-                                userData = googleAuthUiClient.getSignedInUser(),
-                                onHistory = {
-                                    lifecycleScope.launch {
-                                        navController.navigate("history")
+                        fun speakOut(text: String) {
+                            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+                        }
+
+                        composable(
+                            "translator?initialText={initialText}",
+                            arguments = listOf(navArgument("initialText") { defaultValue = "Say Something" })
+                        ) {backStackEntry ->
+                            backStackEntry.arguments?.getString("initialText")?.let {
+                                Translator(
+                                    Modifier
+                                        .fillMaxSize(),
+                                    onRequestPermission = { checkPermissionAndStart() },
+                                    speechRecognizer = speechRecognizer,
+                                    recognizerIntent = recognizerIntent,
+                                    initialText = it,
+                                    databaseReference = databaseReference,
+                                    userData = googleAuthUiClient.getSignedInUser(),
+                                    onHistory = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("history")
+                                        }
+                                    },
+                                    onFavorites = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("favorite")
+                                        }
+                                    },
+                                    onProfile = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("profile")
+                                        }
+                                    },
+                                    onSpeakerClick = { text ->
+                                        speakOut(text)
                                     }
-                                },
-                                onFavorites = {
-                                    lifecycleScope.launch {
-                                        navController.navigate("favorite")
-                                    }
-                                },
-                                onProfile = {
-                                    lifecycleScope.launch {
-                                        navController.navigate("profile")
-                                    }
-                                },
-                                onSpeaker = {}
-                            )
+                                )
+                            }
                         }
 
                         composable("history") {
                             HistoryScreen(
                                 databaseReference,
-                                googleAuthUiClient.getSignedInUser()!!
-                            ) {
-                                lifecycleScope.launch {
-                                    navController.navigate("translator")
-                                }
-                            }
+                                googleAuthUiClient.getSignedInUser()!!,
+                                onBack = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("translator")
+                                    }
+                                },
+                                navController = navController
+                            )
                         }
 
                         composable("favorite") {
                             FavoritesScreen(
                                 databaseReference,
-                                googleAuthUiClient.getSignedInUser()!!
+                                googleAuthUiClient.getSignedInUser()!!,
+                                navController = navController
                             ) {
                                 lifecycleScope.launch {
                                     navController.navigate("translator")
@@ -251,6 +281,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onDestroy() {
+        if (::textToSpeech.isInitialized) {
+            textToSpeech.stop()
+            textToSpeech.shutdown()
+        }
+        super.onDestroy()
+    }
+
 }
 
 @Composable

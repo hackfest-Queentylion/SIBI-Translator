@@ -1,6 +1,5 @@
 package com.queentylion.sibitranslator.presentation.favorites
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,29 +16,20 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.google.firebase.Firebase
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.database
 import com.queentylion.sibitranslator.components.TranslationItem
 import com.queentylion.sibitranslator.database.TranslationsRepository
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
-import com.queentylion.sibitranslator.types.Translation
 import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
 import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 
@@ -49,6 +39,7 @@ fun FavoritesScreen(
     databaseReference: DatabaseReference,
     userData: UserData,
     viewModel: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    navController: NavController,
     onBack: () -> Unit,
 ) {
 
@@ -86,31 +77,22 @@ fun FavoritesScreen(
                 if (item.isFavorite) {
                     TranslationItem(
                         text = item.translation,
-                        isFavorite = true
-                    ) {
-                        val translationsRepository = TranslationsRepository(databaseReference)
-                        translationsRepository.toggleTranslationsIsFavorite(item.translationId)
-                        translationsRepository.toggleUserTranslationsIsFavorite(
-                            userData.userId,
-                            item.translationId
-                        )
-                    }
+                        isFavorite = true,
+                        onFavorite = {
+                            val translationsRepository = TranslationsRepository(databaseReference)
+                            translationsRepository.toggleTranslationsIsFavorite(item.translationId)
+                            translationsRepository.toggleUserTranslationsIsFavorite(
+                                userData.userId,
+                                item.translationId
+                            )
+                        },
+                        onClicked = {
+                            navController.navigate("translator?initialText=${item.translation}")
+                        }
+                    )
                     Spacer(modifier = Modifier.size(16.dp))
                 }
             }
-        }
-    }
-}
-
-@Composable
-@Preview(showBackground = true)
-fun HistoryPreview() {
-    SIBITranslatorTheme {
-        Surface {
-            FavoritesScreen(
-                databaseReference = Firebase.database.reference,
-                userData = UserData("a", "b", "c")
-            ) {}
         }
     }
 }

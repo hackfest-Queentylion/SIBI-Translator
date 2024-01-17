@@ -5,9 +5,9 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.SpeechRecognizer
 import android.util.Log
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Surface
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,21 +34,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.queentylion.sibitranslator.presentation.LanguageBox
 import com.queentylion.sibitranslator.R
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.rounded.ArrowForward
@@ -58,16 +52,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import coil.compose.AsyncImage
 import com.google.firebase.database.DatabaseReference
 import com.queentylion.sibitranslator.components.ExposedDropdownMenuBox
 import com.queentylion.sibitranslator.database.TranslationsRepository
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
-import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,23 +73,27 @@ fun Translator(
     speechRecognizer: SpeechRecognizer? = null,
     recognizerIntent: Intent? = null,
     databaseReference: DatabaseReference,
+    initialText: String,
     userData: UserData? = null,
     onHistory: () -> Unit,
     onFavorites: () -> Unit,
-    onSpeaker: () -> Unit,
+    onSpeakerClick: (String) -> Unit,
     onProfile: () -> Unit
 ) {
 
-    var isTextToSpeech by rememberSaveable { mutableStateOf(true) }
+    var selectedLanguage by rememberSaveable {
+        mutableStateOf("Speech")
+    }
     var isRecording by rememberSaveable {
         mutableStateOf(false)
     }
     var translatedText by rememberSaveable {
-        mutableStateOf("Say Something")
+        mutableStateOf(initialText)
     }
     val updatedTranslatedText by rememberUpdatedState(translatedText)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed = interactionSource.collectIsPressedAsState().value
+    val coroutineScope = rememberCoroutineScope()
 
     fun updateTranslatedText(newText: String) {
         translatedText = newText
@@ -127,9 +126,8 @@ fun Translator(
                 val speechResult =
                     results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.get(0)
                 speechResult?.let {
-                    // Update the translatedText with the recognized speech
                     Log.d("Speech Result", "Recognized speech: $speechResult")
-                    updateTranslatedText(speechResult)
+                     updateTranslatedText(speechResult)
                     isRecording = false
                     val translationsRepository = TranslationsRepository(databaseReference)
                     translationsRepository.writeNewTranslations(userData?.userId, speechResult)
@@ -139,7 +137,17 @@ fun Translator(
             }
         }
 
-        override fun onPartialResults(partialResults: Bundle?) {}
+        override fun onPartialResults(partialResults: Bundle?) {
+            val results = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            val partialResult = results?.firstOrNull() ?: ""
+            coroutineScope.launch {
+                withContext(Dispatchers.Main) {
+                    if (partialResult.isNotBlank()) {
+                        updateTranslatedText(partialResult)
+                    }
+                }
+            }
+        }
         override fun onEvent(eventType: Int, params: Bundle?) {}
     }
 
@@ -186,7 +194,7 @@ fun Translator(
                 },
                 actions = {
                     IconButton(
-                        onClick = { onSpeaker() },
+                        onClick = { onSpeakerClick(updatedTranslatedText) },
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_speaker),
@@ -244,13 +252,15 @@ fun Translator(
                     modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture"))
+                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
+                        selectedLanguage = newText
+                    }
                     FloatingActionButton(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                             .size(30.dp),
                         containerColor = Color.Transparent,
-                        onClick = { isTextToSpeech = !isTextToSpeech }
+                        onClick = {  }
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.ArrowForward,
