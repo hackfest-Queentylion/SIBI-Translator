@@ -2,6 +2,7 @@ package com.queentylion.sibitranslator.presentation.profile
 
 
 import android.bluetooth.BluetoothAdapter
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -48,7 +50,7 @@ fun ProfileScreen(
         onBluetooth: () -> Unit,
         isBluetoothConnected: Boolean,
         onBluetoothStateChanged:()->Unit,
-        viewModel: GloveSensorsViewModel = hiltViewModel()
+        viewModel: GloveSensorsViewModel = hiltViewModel(LocalContext.current as ComponentActivity)
 ) {
     Column(
             modifier = Modifier

@@ -44,7 +44,7 @@ class GloveSensorsViewModel @Inject constructor(
                             }
                         }
                         flexResistance = updatedFlexResistance
-                        dynamicArrayOfFlex.addFirst(flexResistance)
+                        addElement(flexResistance)
                     }
 
                     is Resource.Loading -> {
@@ -91,6 +91,13 @@ class GloveSensorsViewModel @Inject constructor(
 
         val numberOfArrays = dynamicArrayOfFlex.size
         return IntArray(sumFlex.size) { index -> sumFlex[index] / numberOfArrays }
+    }
+
+    private fun addElement(element: IntArray) {
+        if (dynamicArrayOfFlex.size >= maxSize) {
+            dynamicArrayOfFlex.removeLast()
+        }
+        dynamicArrayOfFlex.addFirst(element)
     }
 
 

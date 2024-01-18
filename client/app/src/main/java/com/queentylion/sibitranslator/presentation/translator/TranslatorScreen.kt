@@ -6,6 +6,7 @@ import android.speech.RecognitionListener
 import android.speech.SpeechRecognizer
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -93,10 +94,9 @@ fun Translator(
     onFavorites: () -> Unit,
     onSpeakerClick: (String) -> Unit,
     onProfile: () -> Unit,
-    gloveViewModel: GloveSensorsViewModel = hiltViewModel(),
     viewModelTranslation: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
 ) {
-    val gloveViewModel: GloveSensorsViewModel = hiltViewModel()
+    val gloveViewModel: GloveSensorsViewModel = hiltViewModel(LocalContext.current as ComponentActivity)
     var selectedLanguage by rememberSaveable {
         mutableStateOf("Speech")
     }
@@ -257,8 +257,8 @@ fun Translator(
                 Text(
                     style = MaterialTheme.typography.displaySmall,
                     color = Color(0xFF4b5975),
-//                    text = updatedTranslatedText
-                    text = gloveViewModel.flexResistance[0].toString()
+                    text = updatedTranslatedText
+//                    text = gloveViewModel.flexResistance[0].toString()
                 )
             }
             Column(

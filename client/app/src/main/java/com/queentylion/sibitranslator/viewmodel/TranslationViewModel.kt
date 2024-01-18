@@ -130,12 +130,15 @@ class TranslationViewModel(
             .build()
 
         val client = OkHttpClient()
-        val response = client.newCall(request).execute()
-
-        if (response.isSuccessful) {
-            val responseBody = response.body?.string()
-            val predictions = parsePredictions(responseBody)
-            return predictions
+        try {
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string()
+                val predictions = parsePredictions(responseBody)
+                return predictions
+            }
+        } catch (e:Exception) {
+            e.printStackTrace()
         }
         return listOf()
     }
