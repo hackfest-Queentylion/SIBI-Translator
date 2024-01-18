@@ -348,13 +348,15 @@ class MainActivity : ComponentActivity() {
                         FavoritesScreen(
                             databaseReference,
                             googleAuthUiClient.getSignedInUser()!!,
+                            onBack = {
+                                lifecycleScope.launch {
+                                    navController.navigate("translator")
+                                }
+                            },
                             navController = navController
-                        ) {
-                            lifecycleScope.launch {
-                                navController.navigate("translator")
-                            }
-                        }
+                        )
                     }
+
                 }
             }
         }

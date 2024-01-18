@@ -40,7 +40,7 @@ import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen(
+fun FavoritesScreen(
     databaseReference: DatabaseReference,
     userData: UserData,
     viewModel: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
