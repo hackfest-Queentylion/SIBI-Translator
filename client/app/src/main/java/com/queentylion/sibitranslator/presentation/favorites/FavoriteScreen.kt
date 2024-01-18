@@ -1,10 +1,15 @@
 package com.queentylion.sibitranslator.presentation.favorites
 
+import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
@@ -39,8 +44,8 @@ fun FavoritesScreen(
     databaseReference: DatabaseReference,
     userData: UserData,
     viewModel: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    navController: NavController,
     onBack: () -> Unit,
+    navController: NavController
 ) {
 
     val translations by viewModel.translations.observeAsState(listOf())
@@ -49,31 +54,36 @@ fun FavoritesScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 colors = topAppBarColors(
-                    containerColor = Color(0xFF141a22),
-                    titleContentColor = Color(0xFFc69f68),
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
                 ),
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Go back",
-                            tint = Color(0xFF4b5975)
+                            tint = Color.Black
                         )
                     }
                 },
                 title = {
-                    Text(text = "Favorites", fontWeight = FontWeight.Medium)
+                    Text(text = "History", fontWeight = FontWeight.Medium)
                 }
             )
         },
-        backgroundColor = Color(0xFF191F28),
-        contentColor = Color(0xFF4b5975)
+        backgroundColor = Color.White,
+        contentColor = Color(0xFF071e26),
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
-                .padding(vertical = innerPadding.calculateTopPadding() + 16.dp, horizontal = 6.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    vertical = innerPadding.calculateTopPadding() + 16.dp,
+                    horizontal = innerPadding.calculateTopPadding() + 16.dp
+                ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            items(translations) { item ->
+            translations.forEach { item ->
                 if (item.isFavorite) {
                     TranslationItem(
                         text = item.translation,
@@ -87,10 +97,10 @@ fun FavoritesScreen(
                             )
                         },
                         onClicked = {
-                            navController.navigate("translator?initialText=${item.translation}")
+                            val route = "translator?initialText=" + Uri.encode(item.translation)
+                            navController.navigate(route)
                         }
                     )
-                    Spacer(modifier = Modifier.size(16.dp))
                 }
             }
         }

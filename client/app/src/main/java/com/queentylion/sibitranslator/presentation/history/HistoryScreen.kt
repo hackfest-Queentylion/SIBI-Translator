@@ -2,9 +2,12 @@ package com.queentylion.sibitranslator.presentation.history
 
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
@@ -44,15 +47,15 @@ fun HistoryScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 colors = topAppBarColors(
-                    containerColor = Color(0xFF141a22),
-                    titleContentColor = Color(0xFFc69f68),
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
                 ),
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Go back",
-                            tint = Color(0xFF4b5975)
+                            tint = Color.Black
                         )
                     }
                 },
@@ -61,15 +64,19 @@ fun HistoryScreen(
                 }
             )
         },
-        backgroundColor = Color(0xFF191F28),
-        contentColor = Color(0xFF4b5975)
+        backgroundColor = Color.White,
+        contentColor = Color(0xFF071e26),
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
-                .padding(vertical = innerPadding.calculateTopPadding() + 16.dp, horizontal = 6.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    vertical = innerPadding.calculateTopPadding() + 16.dp,
+                    horizontal = innerPadding.calculateTopPadding() + 16.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            items(translations) { item ->
+            translations.forEach { item ->
                 TranslationItem(
                     text = item.translation,
                     isFavorite = item.isFavorite,

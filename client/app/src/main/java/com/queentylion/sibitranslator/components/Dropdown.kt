@@ -57,7 +57,7 @@ fun ExposedDropdownMenuBox(
             .width(100.dp)
             .height(40.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF191F28))
+            .background(Color.White)
     ) {
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -70,7 +70,7 @@ fun ExposedDropdownMenuBox(
                 onValueChange = {},
                 readOnly = true,
                 textStyle = TextStyle(
-                    color = Color(0xFFccccb5),
+                    color = Color(0xFF006780),
                     fontFamily = FontFamily.Default,
                     fontWeight = FontWeight.Medium,
                     fontSize = 17.sp,
@@ -84,14 +84,14 @@ fun ExposedDropdownMenuBox(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 modifier = Modifier
-                    .background(Color(0xFF191F28))
                     .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White)
             ) {
                 menuItem.forEach { item ->
                     DropdownMenuItem(
                         text = { Text(
                             text = item,
-                            color = Color(0xFFccccb5),
+                            color = Color(0xFFcfe6f1),
                             style = MaterialTheme.typography.titleMedium,
                         ) },
                         onClick = {
