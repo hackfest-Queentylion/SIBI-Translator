@@ -341,6 +341,8 @@ fun Translator(
                                         } else {
                                             viewModelTranslation.endStreamingGesture()
                                             onSpeakerClick(viewModelTranslation.getSentencesString())
+                                            val translationsRepository = TranslationsRepository(databaseReference)
+                                            translationsRepository.writeNewTranslations(userData?.userId, viewModelTranslation.getSentencesString())
                                         }
                                     }
                                 ) {
