@@ -43,7 +43,8 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ExposedDropdownMenuBox(
-    menuItem: Array<String>
+    menuItem: Array<String>,
+    onUpdate: (String) -> Unit
 ) {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
@@ -94,6 +95,7 @@ fun ExposedDropdownMenuBox(
                             style = MaterialTheme.typography.titleMedium,
                         ) },
                         onClick = {
+                            onUpdate(item)
                             selectedText = item
                             expanded = false
                             Toast.makeText(context, item, Toast.LENGTH_SHORT).show()

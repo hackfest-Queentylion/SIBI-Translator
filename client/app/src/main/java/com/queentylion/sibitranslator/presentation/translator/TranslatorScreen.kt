@@ -6,6 +6,7 @@ import android.speech.RecognitionListener
 import android.speech.SpeechRecognizer
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,6 +60,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -71,7 +73,10 @@ import com.queentylion.sibitranslator.data.ConnectionState
 import com.queentylion.sibitranslator.database.TranslationsRepository
 import com.queentylion.sibitranslator.presentation.profile.GloveSensorsViewModel
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
-import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
+import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,15 +87,19 @@ fun Translator(
     speechRecognizer: SpeechRecognizer? = null,
     recognizerIntent: Intent? = null,
     databaseReference: DatabaseReference,
+    initialText: String,
     userData: UserData? = null,
     onHistory: () -> Unit,
     onFavorites: () -> Unit,
-    onSpeaker: () -> Unit,
+    onSpeakerClick: (String) -> Unit,
     onProfile: () -> Unit,
-    gloveViewModel: GloveSensorsViewModel = hiltViewModel()
+    gloveViewModel: GloveSensorsViewModel = hiltViewModel(),
+    viewModelTranslation: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
 ) {
-
-    var isTextToSpeech by rememberSaveable { mutableStateOf(true) }
+    val gloveViewModel: GloveSensorsViewModel = hiltViewModel()
+    var selectedLanguage by rememberSaveable {
+        mutableStateOf("Speech")
+    }
     var isRecording by rememberSaveable {
         mutableStateOf(false)
     }
@@ -98,17 +107,19 @@ fun Translator(
         mutableStateOf(false)
     }
     var translatedText by rememberSaveable {
-        mutableStateOf("Say Something")
+        mutableStateOf(initialText)
     }
     val updatedTranslatedText by rememberUpdatedState(translatedText)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed = interactionSource.collectIsPressedAsState().value
+    val coroutineScope = rememberCoroutineScope()
 
     fun updateTranslatedText(newText: String) {
         translatedText = newText
     }
 
     val context = LocalContext.current
+
 
     val recognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
@@ -137,9 +148,8 @@ fun Translator(
                 val speechResult =
                     results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.get(0)
                 speechResult?.let {
-                    // Update the translatedText with the recognized speech
                     Log.d("Speech Result", "Recognized speech: $speechResult")
-                    updateTranslatedText(speechResult)
+                     updateTranslatedText(speechResult)
                     isRecording = false
                     val translationsRepository = TranslationsRepository(databaseReference)
                     translationsRepository.writeNewTranslations(userData?.userId, speechResult)
@@ -149,7 +159,17 @@ fun Translator(
             }
         }
 
-        override fun onPartialResults(partialResults: Bundle?) {}
+        override fun onPartialResults(partialResults: Bundle?) {
+            val results = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            val partialResult = results?.firstOrNull() ?: ""
+            coroutineScope.launch {
+                withContext(Dispatchers.Main) {
+                    if (partialResult.isNotBlank()) {
+                        updateTranslatedText(partialResult)
+                    }
+                }
+            }
+        }
         override fun onEvent(eventType: Int, params: Bundle?) {}
     }
 
@@ -196,7 +216,7 @@ fun Translator(
                 },
                 actions = {
                     IconButton(
-                        onClick = { onSpeaker() },
+                        onClick = { onSpeakerClick(updatedTranslatedText) },
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_speaker),
@@ -237,7 +257,8 @@ fun Translator(
                 Text(
                     style = MaterialTheme.typography.displaySmall,
                     color = Color(0xFF4b5975),
-                    text = updatedTranslatedText
+//                    text = updatedTranslatedText
+                    text = gloveViewModel.flexResistance[0].toString()
                 )
             }
             Column(
@@ -254,13 +275,15 @@ fun Translator(
                     modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture"))
+                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
+                        selectedLanguage = newText
+                    }
                     FloatingActionButton(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                             .size(30.dp),
                         containerColor = Color.Transparent,
-                        onClick = { isTextToSpeech = !isTextToSpeech }
+                        onClick = {  }
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.ArrowForward,
@@ -287,7 +310,7 @@ fun Translator(
                         )
                     }
 
-                    if(isTextToSpeech) {
+                    if(selectedLanguage != "Gesture") {
                         FloatingActionButton(
                             shape = CircleShape,
                             containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
@@ -325,26 +348,28 @@ fun Translator(
                                 if (isHandSigning) {
                                     // Make sure connected to glove ble gimana
                                     if(gloveViewModel.connectionState == ConnectionState.Connected){
-                                        speechRecognizer?.startListening(recognizerIntent)
+
+                                        viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex))
                                     } else {
+                                        isHandSigning = false
                                         Toast.makeText(context, "Please Connect To Glove", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
-                                    speechRecognizer?.stopListening()
+                                    viewModelTranslation.endStreamingGesture()
                                 }
                             }
                         ) {
                             if(!isHandSigning) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.ic_speaker),
-                                    contentDescription = "HandStop",
+                                    painter = painterResource(id = R.drawable.ic_handbegin),
+                                    contentDescription = "HandBegin",
                                     modifier = Modifier
                                         .size(28.dp)
                                 )
                             } else {
                                 Image(
-                                    painter = painterResource(id = R.drawable.ic_switch),
-                                    contentDescription = "HandStart",
+                                    painter = painterResource(id = R.drawable.ic_handend),
+                                    contentDescription = "HandEnd",
                                     modifier = Modifier
                                         .size(28.dp)
                                 )

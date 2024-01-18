@@ -8,7 +8,7 @@ import com.google.firebase.database.ValueEventListener
 import com.queentylion.sibitranslator.types.Translation
 
 class TranslationsRepository(
-    private val database: DatabaseReference
+    private val database: DatabaseReference,
 ) {
 
     private val TAG = "TranslationsRepository"

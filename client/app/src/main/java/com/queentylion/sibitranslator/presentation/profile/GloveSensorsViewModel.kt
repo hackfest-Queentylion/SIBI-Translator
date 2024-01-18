@@ -23,14 +23,11 @@ class GloveSensorsViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-//    var temperature by mutableStateOf(0f)
-//        private set
-//
-//    var humidity by mutableStateOf(0f)
-//        private set
-
     var flexResistance by mutableStateOf(IntArray(5))
         private set
+
+    val maxSize = 10
+    val dynamicArrayOfFlex: ArrayDeque<IntArray> = ArrayDeque(maxSize)
 
     var connectionState by mutableStateOf<ConnectionState>(ConnectionState.Uninitialized)
 
@@ -47,6 +44,7 @@ class GloveSensorsViewModel @Inject constructor(
                             }
                         }
                         flexResistance = updatedFlexResistance
+                        dynamicArrayOfFlex.addFirst(flexResistance)
                     }
 
                     is Resource.Loading -> {
@@ -80,6 +78,19 @@ class GloveSensorsViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         temperatureAndHumidityReceiveManager.closeConnection()
+    }
+
+    fun calculateMeanFlex(dynamicArrayOfFlex: ArrayDeque<IntArray>): IntArray {
+        val sumFlex = IntArray(dynamicArrayOfFlex.firstOrNull()?.size ?: 0)
+
+        for (flexArray in dynamicArrayOfFlex) {
+            for (i in flexArray.indices) {
+                sumFlex[i] += flexArray[i]
+            }
+        }
+
+        val numberOfArrays = dynamicArrayOfFlex.size
+        return IntArray(sumFlex.size) { index -> sumFlex[index] / numberOfArrays }
     }
 
 

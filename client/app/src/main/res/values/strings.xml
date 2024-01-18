@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">SIBI Translator</string>
     <string name="web_client_id">901798999714-e0bc8s2tn6ebckj9e3e7a7s0m57jkmeb.apps.googleusercontent.com</string>
+    <string name="endpoint_id">3932073483252531200</string>
+    <string name="project_id">267809006279</string>
+    <string name="input_data_file">INPUT-JSON</string>
+    <string name="endpoint_sibi">https://asia-southeast2-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/asia-southeast2/endpoints/${ENDPOINT_ID}</string>
+    <string name="access_key_gcloud">ya29.a0AfB_byC7ZeRWHhKxWmTlu1jEdaMpsEcee0RWJoteercRlpmALaKXr7LtiMOMjuvtluanpnS4R8RUZCoBC56h0Qb7E8bdhSflB7oqQDm8nCFFpF1bokM66ourkFrKeYgigqALsWOZcSXeLjWEpm72eDbt62q4gOR9ghXYLtLouZxxljIjiN-gFbhx3d5cJ1LvWXzSCrqZijY_PEc4Z4wFQy7e8a7tctTBy3xvfME8ppAG7fYLPb7xF8E42y5qNWOjKSOY1YlP88T9oz8_kBGAF0-Stv3pSW-cbAfvWuyrsA8TfvjEcXYr2JuADJCXxitfMhTmP_oreX2s4zSr5CmKgnEH9G9crqSWqzGjuM7Qm4YGGqwr3OxsSz2uId_m5a6-_RsbuaLwgz7SxrqllvgFa9ZGvJLmygaCgYKAd0SARMSFQHGX2Miw2m1HWADLpXYmcPTtekEOw0421</string>
 </resources>
