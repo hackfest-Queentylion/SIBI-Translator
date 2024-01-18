@@ -85,6 +85,9 @@ dependencies {
     kapt ("com.google.dagger:hilt-android-compiler:2.48")
     kapt ("androidx.hilt:hilt-compiler:1.0.0")
 
+    // OA2
+    implementation ("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+
     // Auth
     implementation("com.google.auth:google-auth-library-oauth2-http:1.20.0")
 

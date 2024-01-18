@@ -69,6 +69,7 @@ import com.queentylion.sibitranslator.database.TranslationsRepository
 import com.queentylion.sibitranslator.presentation.profile.GloveSensorsViewModel
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
+import com.queentylion.sibitranslator.util.GoogleAuthController
 import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +96,7 @@ fun Translator(
     var selectedLanguage by rememberSaveable {
         mutableStateOf("Speech")
     }
+
     var isRecording by rememberSaveable {
         mutableStateOf(false)
     }
@@ -269,6 +271,10 @@ fun Translator(
                         ) {
                             ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
                                 selectedLanguage = newText
+                                if (userData != null) {
+                                    val googleAuthController = GoogleAuthController()
+                                    userData.accessToken = googleAuthController.getAccessToken()
+                                }
                             }
                             Icon(
                                 imageVector = Icons.Rounded.ArrowForward,
@@ -333,7 +339,13 @@ fun Translator(
                                             // Make sure connected to glove ble gimana
                                             if(gloveViewModel.connectionState == ConnectionState.Connected){
 
-                                                viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex))
+                                                if (userData != null) {
+                                                    userData.accessToken?.let {
+                                                        viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
+                                                            it
+                                                        )
+                                                    }
+                                                }
                                             } else {
                                                 isHandSigning = false
                                                 Toast.makeText(context, "Please Connect To Glove", Toast.LENGTH_SHORT).show()
