@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.SpeechRecognizer
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -56,13 +58,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.firebase.database.DatabaseReference
 import com.queentylion.sibitranslator.components.ExposedDropdownMenuBox
+import com.queentylion.sibitranslator.data.ConnectionState
 import com.queentylion.sibitranslator.database.TranslationsRepository
+import com.queentylion.sibitranslator.presentation.profile.GloveSensorsViewModel
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
+import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -81,13 +88,17 @@ fun Translator(
     onHistory: () -> Unit,
     onFavorites: () -> Unit,
     onSpeakerClick: (String) -> Unit,
-    onProfile: () -> Unit
+    onProfile: () -> Unit,
+    viewModelTranslation: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
 ) {
-
+    val gloveViewModel: GloveSensorsViewModel = hiltViewModel(LocalContext.current as ComponentActivity)
     var selectedLanguage by rememberSaveable {
         mutableStateOf("Speech")
     }
     var isRecording by rememberSaveable {
+        mutableStateOf(false)
+    }
+    var isHandSigning by rememberSaveable {
         mutableStateOf(false)
     }
     var translatedText by rememberSaveable {
@@ -101,6 +112,7 @@ fun Translator(
     fun updateTranslatedText(newText: String) {
         translatedText = newText
     }
+    val context = LocalContext.current
 
     val recognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
@@ -197,7 +209,7 @@ fun Translator(
                 },
                 actions = {
                     IconButton(
-                        onClick = { onSpeakerClick(updatedTranslatedText) },
+                        onClick = { onSpeakerClick(if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()) },
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_speaker),
@@ -237,7 +249,8 @@ fun Translator(
                         Text(
                             style = MaterialTheme.typography.displaySmall,
                             color = Color(0xFF70787c),
-                            text = updatedTranslatedText
+//                            text = updatedTranslatedText
+                            text = if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()
                         )
                     }
                     Column(
@@ -281,30 +294,72 @@ fun Translator(
                                     tint = Color(0xFF4c626b)
                                 )
                             }
-                            FloatingActionButton(
-                                shape = CircleShape,
-                                containerColor = if (isPressed) Color(0xFFcfe6f1) else Color(0xFF006780),
-                                contentColor = Color(0xFFcfe6f1),
-                                modifier = Modifier
-                                    .size(80.dp),
-                                interactionSource = interactionSource,
-                                onClick = {
-                                    isRecording = !isRecording
-                                    if (isRecording) {
-                                        onRequestPermission()
-                                        speechRecognizer?.startListening(recognizerIntent)
+                            if(selectedLanguage != "Gesture") {
+                                FloatingActionButton(
+                                    shape = CircleShape,
+                                    containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
+                                    contentColor = Color(0xFF141a22),
+                                    modifier = Modifier
+                                        .size(80.dp),
+                                    interactionSource = interactionSource,
+                                    onClick = {
+                                        isRecording = !isRecording
+                                        if (isRecording) {
+                                            onRequestPermission()
+                                            speechRecognizer?.startListening(recognizerIntent)
+                                        } else {
+                                            speechRecognizer?.stopListening()
+                                        }
+                                    }
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_microphone),
+                                        contentDescription = "Microphone",
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                    )
+                                }
+                            } else {
+                                FloatingActionButton(
+                                    shape = CircleShape,
+                                    containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
+                                    contentColor = Color(0xFF141a22),
+                                    modifier = Modifier
+                                        .size(80.dp),
+                                    interactionSource = interactionSource,
+                                    onClick = {
+                                        isHandSigning = !isHandSigning
+                                        if (isHandSigning) {
+                                            // Make sure connected to glove ble gimana
+                                            if(gloveViewModel.connectionState == ConnectionState.Connected){
+
+                                                viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex))
+                                            } else {
+                                                isHandSigning = false
+                                                Toast.makeText(context, "Please Connect To Glove", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } else {
+                                            viewModelTranslation.endStreamingGesture()
+                                            onSpeakerClick(viewModelTranslation.getSentencesString())
+                                        }
+                                    }
+                                ) {
+                                    if(!isHandSigning) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.ic_handbegin),
+                                            contentDescription = "HandBegin",
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                        )
                                     } else {
-                                        speechRecognizer?.stopListening()
+                                        Image(
+                                            painter = painterResource(id = R.drawable.ic_handend),
+                                            contentDescription = "HandEnd",
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                        )
                                     }
                                 }
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_microphone),
-                                    contentDescription = "Microphone",
-                                    modifier = Modifier
-                                        .size(28.dp),
-                                    colorFilter = ColorFilter.tint(Color.White)
-                                )
                             }
                             IconButton(onClick = { onHistory() }) {
                                 Icon(

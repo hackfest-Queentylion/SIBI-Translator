@@ -16,10 +16,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.gson.Gson
-import com.queentylion.sibitranslator.data.gesture.ApiService
 import com.queentylion.sibitranslator.data.gesture.PostData
-import com.queentylion.sibitranslator.data.gesture.ResponseData
-import retrofit2.Response
 import com.queentylion.sibitranslator.types.Translation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -99,17 +96,18 @@ class TranslationViewModel(
     ) {
         currentSentence.clear()
         isStreamingGesture = !isStreamingGesture
+
         viewModelScope.launch {
             while (isStreamingGesture) {
+                delay(1800)
                 // Your POST request logic here
                 val postData = PostData(
                     listOf(data.toList())
                 )
-                val response = executePostRequest("267809006279","3932073483252531200", "ya29.a0AfB_byC7ZeRWHhKxWmTlu1jEdaMpsEcee0RWJoteercRlpmALaKXr7LtiMOMjuvtluanpnS4R8RUZCoBC56h0Qb7E8bdhSflB7oqQDm8nCFFpF1bokM66ourkFrKeYgigqALsWOZcSXeLjWEpm72eDbt62q4gOR9ghXYLtLouZxxljIjiN-gFbhx3d5cJ1LvWXzSCrqZijY_PEc4Z4wFQy7e8a7tctTBy3xvfME8ppAG7fYLPb7xF8E42y5qNWOjKSOY1YlP88T9oz8_kBGAF0-Stv3pSW-cbAfvWuyrsA8TfvjEcXYr2JuADJCXxitfMhTmP_oreX2s4zSr5CmKgnEH9G9crqSWqzGjuM7Qm4YGGqwr3OxsSz2uId_m5a6-_RsbuaLwgz7SxrqllvgFa9ZGvJLmygaCgYKAd0SARMSFQHGX2Miw2m1HWADLpXYmcPTtekEOw0421", postData)
-                currentSentence.add(response[0])
+                executePostRequest("267809006279","3932073483252531200", "ya29.a0AfB_byAsajjQfMmwA1yX-EZL7wBs1aBUYci_WVBjGImGkqYX_GpC93O0IcqgUrSpR0UUXqwsyWfII_AyuklbyFEVMkuvFb1VKbJlvy2Zf5GkEFLtf0YEXtv75f69cayBJ1K4cm2bwIoxoLQaDcM9g8Cm1thBeIHG4zApM7sRLYsyinTXkFmtIN6m82boknLZUepgohOWvBDDR7O98CuKrJmS3usC6JZVRHU6MrtPZQQ87S3x27mpHCt-qtUTClBYG90R01Sf3co73-fsly-S0KcdrvPjFpnARwl_OyHueYCYZArrn5gxrYzJkUfi5TmZqAZ3LJHDlqyzx1MifDZ7UAvjx4tLerjPpUGwn3igusEIhqN1AA4uwyxL9qE6OqT2xI_HeCWKrJ1cqRFxiCQsZ-xnUdFA5pIaCgYKAWgSARMSFQHGX2MiYaaC-_Un47grXfuMFgtA4w0422", postData)
+
 
                 // Delay for 3 seconds
-                delay(3000)
             }
         }
     }
@@ -130,16 +128,20 @@ class TranslationViewModel(
             .build()
 
         val client = OkHttpClient()
-        try {
-            val response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                val responseBody = response.body?.string()
-                val predictions = parsePredictions(responseBody)
-                return predictions
+        val thread = Thread {
+            try {
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    val predictions = parsePredictions(responseBody)
+                    currentSentence.add(predictions[0])
+//                    return@Thread predictions
+                }
+            } catch (e:Exception) {
+                e.printStackTrace()
             }
-        } catch (e:Exception) {
-            e.printStackTrace()
         }
+        thread.start()
         return listOf()
     }
 
@@ -165,6 +167,10 @@ class TranslationViewModel(
 
     fun endStreamingGesture(){
         isStreamingGesture = !isStreamingGesture
+    }
+
+    fun getSentencesString(): String {
+        return currentSentence.joinToString(separator = " ")
     }
 
 
