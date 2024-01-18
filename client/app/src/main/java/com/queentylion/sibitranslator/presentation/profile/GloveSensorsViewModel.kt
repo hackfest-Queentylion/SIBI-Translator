@@ -27,7 +27,7 @@ class GloveSensorsViewModel @Inject constructor(
         private set
 
     private val maxSize = 10
-    private val dynamicArrayOfFlex: ArrayDeque<IntArray> = ArrayDeque(maxSize)
+    val dynamicArrayOfFlex: ArrayDeque<IntArray> = ArrayDeque(maxSize)
 
     var connectionState by mutableStateOf<ConnectionState>(ConnectionState.Uninitialized)
 
