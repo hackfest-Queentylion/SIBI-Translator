@@ -92,7 +92,8 @@ class TranslationViewModel(
     var isStreamingGesture = false
 
     fun beginStreamingGesture(
-        data : IntArray
+        data : IntArray,
+        accessToken: String
     ) {
         currentSentence.clear()
         isStreamingGesture = !isStreamingGesture
@@ -104,9 +105,7 @@ class TranslationViewModel(
                 val postData = PostData(
                     listOf(data.toList())
                 )
-                executePostRequest("267809006279","3932073483252531200", "ya29.a0AfB_byAsajjQfMmwA1yX-EZL7wBs1aBUYci_WVBjGImGkqYX_GpC93O0IcqgUrSpR0UUXqwsyWfII_AyuklbyFEVMkuvFb1VKbJlvy2Zf5GkEFLtf0YEXtv75f69cayBJ1K4cm2bwIoxoLQaDcM9g8Cm1thBeIHG4zApM7sRLYsyinTXkFmtIN6m82boknLZUepgohOWvBDDR7O98CuKrJmS3usC6JZVRHU6MrtPZQQ87S3x27mpHCt-qtUTClBYG90R01Sf3co73-fsly-S0KcdrvPjFpnARwl_OyHueYCYZArrn5gxrYzJkUfi5TmZqAZ3LJHDlqyzx1MifDZ7UAvjx4tLerjPpUGwn3igusEIhqN1AA4uwyxL9qE6OqT2xI_HeCWKrJ1cqRFxiCQsZ-xnUdFA5pIaCgYKAWgSARMSFQHGX2MiYaaC-_Un47grXfuMFgtA4w0422", postData)
-
-
+                executePostRequest("267809006279","3932073483252531200", accessToken , postData)
                 // Delay for 3 seconds
             }
         }
