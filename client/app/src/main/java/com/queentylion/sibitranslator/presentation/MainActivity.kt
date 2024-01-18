@@ -24,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -39,6 +38,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -105,9 +105,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private var isBluetootDialogAlreadyShown = false
-    private fun showBluetoothDialog(){
-        if(!bluetoothAdapter.isEnabled){
-            if(!isBluetootDialogAlreadyShown){
+    private fun showBluetoothDialog() {
+        if (!bluetoothAdapter.isEnabled) {
+            if (!isBluetootDialogAlreadyShown) {
                 val enableBluetoothIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                 startBluetoothIntentForResult.launch(enableBluetoothIntent)
                 isBluetootDialogAlreadyShown = true
@@ -116,9 +116,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private val startBluetoothIntentForResult =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()){ result ->
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             isBluetootDialogAlreadyShown = false
-            if(result.resultCode != Activity.RESULT_OK){
+            if (result.resultCode != Activity.RESULT_OK) {
                 showBluetoothDialog()
             }
         }
@@ -151,106 +151,108 @@ class MainActivity : ComponentActivity() {
                 .database("https://sibi-translator-default-rtdb.asia-southeast1.firebasedatabase.app/")
                 .reference
 
-        googleAuthUiClient.setSignInCallback(object: GoogleAuthUiClient.SignInCallback {
+        googleAuthUiClient.setSignInCallback(object : GoogleAuthUiClient.SignInCallback {
             override fun onSignInSuccess(userData: UserData?) {
                 val usersRepository = UsersRepository(databaseReference)
-                usersRepository.writeNewUsers(userId = userData?.userId, username = userData?.username)
+                usersRepository.writeNewUsers(
+                    userId = userData?.userId,
+                    username = userData?.username
+                )
             }
         })
 
         setContent {
-            SIBITranslatorTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF191f28)
-                ) {
-                    val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "sign_in") {
+            Surface(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "sign_in") {
 
-                        composable("sign_in") {
-                            val viewModel = viewModel<SignInViewModel>()
-                            val state by viewModel.state.collectAsStateWithLifecycle()
+                    composable("sign_in") {
+                        val viewModel = viewModel<SignInViewModel>()
+                        val state by viewModel.state.collectAsStateWithLifecycle()
 
-                            LaunchedEffect(key1 = Unit) {
-                                if (googleAuthUiClient.getSignedInUser() != null) {
-                                    navController.navigate("profile")
-                                }
+                        LaunchedEffect(key1 = Unit) {
+                            if (googleAuthUiClient.getSignedInUser() != null) {
+                                navController.navigate("profile")
                             }
+                        }
 
-                            val launcher = rememberLauncherForActivityResult(
-                                contract = ActivityResultContracts.StartIntentSenderForResult(),
-                                onResult = { result ->
-                                    if (result.resultCode == RESULT_OK) {
-                                        lifecycleScope.launch {
-                                            val signInResult = googleAuthUiClient.signInWithIntent(
-                                                intent = result.data ?: return@launch
-                                            )
-                                            viewModel.onSignInResult(signInResult)
-                                        }
+                        val launcher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.StartIntentSenderForResult(),
+                            onResult = { result ->
+                                if (result.resultCode == RESULT_OK) {
+                                    lifecycleScope.launch {
+                                        val signInResult = googleAuthUiClient.signInWithIntent(
+                                            intent = result.data ?: return@launch
+                                        )
+                                        viewModel.onSignInResult(signInResult)
                                     }
                                 }
-                            )
+                            }
+                        )
 
-                            LaunchedEffect(key1 = state.isSignInSuccessful) {
-                                if (state.isSignInSuccessful) {
+                        LaunchedEffect(key1 = state.isSignInSuccessful) {
+                            if (state.isSignInSuccessful) {
+                                Toast.makeText(
+                                    applicationContext,
+                                    "Sign in successful",
+                                    Toast.LENGTH_LONG
+                                ).show()
+
+                                navController.navigate("profile")
+                                viewModel.resetState()
+                            }
+                        }
+
+                        SignInScreen(
+                            state = state,
+                            onSignInClick = {
+                                lifecycleScope.launch {
+                                    val signInIntentSender = googleAuthUiClient.signIn()
+                                    launcher.launch(
+                                        IntentSenderRequest.Builder(
+                                            signInIntentSender ?: return@launch
+                                        ).build()
+                                    )
+                                }
+                            }
+                        )
+                    }
+                    composable("profile") {
+                        ProfileScreen(
+                            userData = googleAuthUiClient.getSignedInUser(),
+                            onSignOut = {
+                                lifecycleScope.launch {
+                                    googleAuthUiClient.signOut()
                                     Toast.makeText(
                                         applicationContext,
-                                        "Sign in successful",
+                                        "Signed out",
                                         Toast.LENGTH_LONG
                                     ).show()
 
-                                    navController.navigate("profile")
-                                    viewModel.resetState()
+                                    navController.navigate("sign_in")
                                 }
+                            },
+                            onTranslate = {
+                                lifecycleScope.launch {
+                                    navController.navigate("translator")
+                                }
+                            },
+                            onBluetooth = {
+                                lifecycleScope.launch {
+                                    navController.navigate("profile_connected")
+                                }
+                            },
+                            isBluetoothConnected = false,
+                            onBluetoothStateChanged = {
+                                showBluetoothDialog()
                             }
+                        )
+                    }
 
-                            SignInScreen(
-                                state = state,
-                                onSignInClick = {
-                                    lifecycleScope.launch {
-                                        val signInIntentSender = googleAuthUiClient.signIn()
-                                        launcher.launch(
-                                            IntentSenderRequest.Builder(
-                                                signInIntentSender ?: return@launch
-                                            ).build()
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                        composable("profile") {
-                            ProfileScreen(
-                                    userData = googleAuthUiClient.getSignedInUser(),
-                                    onSignOut = {
-                                        lifecycleScope.launch {
-                                            googleAuthUiClient.signOut()
-                                            Toast.makeText(
-                                                    applicationContext,
-                                                    "Signed out",
-                                                    Toast.LENGTH_LONG
-                                            ).show()
-
-                                            navController.navigate("sign_in")
-                                        }
-                                    },
-                                    onTranslate = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("translator")
-                                        }
-                                    },
-                                    onBluetooth = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("profile_connected")
-                                        }
-                                    },
-                                    isBluetoothConnected = false,
-                                    onBluetoothStateChanged = {
-                                        showBluetoothDialog()
-                                    }
-                            )
-                        }
-
-                        composable("profile_connected") {
+                    composable("profile_connected") {
+                        SIBITranslatorTheme {
                             ProfileScreen(
                                 userData = googleAuthUiClient.getSignedInUser(),
                                 onSignOut = {
@@ -262,7 +264,7 @@ class MainActivity : ComponentActivity() {
                                             Toast.LENGTH_LONG
                                         ).show()
 
-                                        navController.popBackStack()
+                                        navController.navigate("sign_in")
                                     }
                                 },
                                 onTranslate = {
@@ -283,70 +285,73 @@ class MainActivity : ComponentActivity() {
 
                                 }
                             )
-                        }
 
-                        fun speakOut(text: String) {
-                            textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
                         }
+                    }
 
-                        composable(
-                            "translator?initialText={initialText}",
-                            arguments = listOf(navArgument("initialText") { defaultValue = "Say Something" })
-                        ) {backStackEntry ->
-                            backStackEntry.arguments?.getString("initialText")?.let {
-                                Translator(
-                                    Modifier
-                                        .fillMaxSize(),
-                                    onRequestPermission = { checkPermissionAndStart() },
-                                    speechRecognizer = speechRecognizer,
-                                    recognizerIntent = recognizerIntent,
-                                    initialText = it,
-                                    databaseReference = databaseReference,
-                                    userData = googleAuthUiClient.getSignedInUser(),
-                                    onHistory = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("history")
-                                        }
-                                    },
-                                    onFavorites = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("favorite")
-                                        }
-                                    },
-                                    onProfile = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("profile")
-                                        }
-                                    },
-                                    onSpeakerClick = { text ->
-                                        speakOut(text)
-                                    }
-                                )
-                            }
-                        }
+                    fun speakOut(text: String) {
+                        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+                    }
 
-                        composable("history") {
-                            HistoryScreen(
-                                databaseReference,
-                                googleAuthUiClient.getSignedInUser()!!,
-                                onBack = {
+                    composable(
+                        "translator?initialText={initialText}",
+                        arguments = listOf(navArgument("initialText") {
+                            defaultValue = "Say Something"
+                        })
+                    ) { backStackEntry ->
+                        backStackEntry.arguments?.getString("initialText")?.let {
+                            Translator(
+                                Modifier
+                                    .fillMaxSize(),
+                                onRequestPermission = { checkPermissionAndStart() },
+                                speechRecognizer = speechRecognizer,
+                                recognizerIntent = recognizerIntent,
+                                initialText = it,
+                                databaseReference = databaseReference,
+                                userData = googleAuthUiClient.getSignedInUser(),
+                                onHistory = {
                                     lifecycleScope.launch {
-                                        navController.navigate("translator")
+                                        navController.navigate("history")
                                     }
                                 },
-                                navController = navController
+                                onFavorites = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("favorite")
+                                    }
+                                },
+                                onProfile = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("profile")
+                                    }
+                                },
+                                onSpeakerClick = { text ->
+                                    speakOut(text)
+                                }
                             )
                         }
+                    }
 
-                        composable("favorite") {
-                            FavoritesScreen(
-                                databaseReference,
-                                googleAuthUiClient.getSignedInUser()!!,
-                                navController = navController
-                            ) {
+                    composable("history") {
+                        HistoryScreen(
+                            databaseReference,
+                            googleAuthUiClient.getSignedInUser()!!,
+                            onBack = {
                                 lifecycleScope.launch {
                                     navController.navigate("translator")
                                 }
+                            },
+                            navController = navController
+                        )
+                    }
+
+                    composable("favorite") {
+                        FavoritesScreen(
+                            databaseReference,
+                            googleAuthUiClient.getSignedInUser()!!,
+                            navController = navController
+                        ) {
+                            lifecycleScope.launch {
+                                navController.navigate("translator")
                             }
                         }
                     }
@@ -380,7 +385,7 @@ fun LanguageBox(text: String) {
             .width(100.dp)
             .height(40.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF191F28))
+            .background(Color.White)
     ) {
         BasicTextField(
             value = text,
@@ -389,12 +394,12 @@ fun LanguageBox(text: String) {
             onValueChange = {},
             readOnly = true,
             textStyle = TextStyle(
-                color = Color(0xFFccccb5),
                 fontFamily = FontFamily.Default,
                 fontWeight = FontWeight.Medium,
                 fontSize = 17.sp,
                 lineHeight = 28.sp,
                 letterSpacing = 0.sp,
+                color = Color(0xFF006780),
                 textAlign = TextAlign.Center
             )
         )

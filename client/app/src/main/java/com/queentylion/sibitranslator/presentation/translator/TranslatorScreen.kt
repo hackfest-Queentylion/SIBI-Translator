@@ -42,6 +42,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
+import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
@@ -53,6 +54,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
@@ -60,6 +62,7 @@ import com.google.firebase.database.DatabaseReference
 import com.queentylion.sibitranslator.components.ExposedDropdownMenuBox
 import com.queentylion.sibitranslator.database.TranslationsRepository
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
+import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -165,10 +168,10 @@ fun Translator(
         topBar = {
             CenterAlignedTopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF191F28),
-                    titleContentColor = Color(0xFFc69f68),
-                    actionIconContentColor = Color(0xFF4b5975),
-                    navigationIconContentColor = Color(0xFF4b5975)
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    actionIconContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
                 ),
                 navigationIcon = {
                     IconButton(
@@ -218,109 +221,102 @@ fun Translator(
                 }
             )
         },
-        backgroundColor = Color(0xFF191F28),
-        contentColor = Color(0xFF4b5975)
+        contentColor = Color(0xFF70787c)
     ) { innerPadding ->
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        vertical = innerPadding.calculateTopPadding() + 20.dp,
-                        horizontal = 45.dp
-                    )
-                    .verticalScroll(rememberScrollState())
-                    .weight(2F)
-            ) {
-                Text(
-                    style = MaterialTheme.typography.displaySmall,
-                    color = Color(0xFF4b5975),
-                    text = updatedTranslatedText
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1F)
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
-                    .background(Color(0xFF141a22))
-                    .padding(top = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                Row(
-                    modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
-                        selectedLanguage = newText
-                    }
-                    FloatingActionButton(
+                Column {
+                    Box(
                         modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .size(30.dp),
-                        containerColor = Color.Transparent,
-                        onClick = {  }
+                            .fillMaxWidth()
+                            .padding(
+                                vertical = innerPadding.calculateTopPadding() + 20.dp,
+                                horizontal = 45.dp
+                            )
+                            .verticalScroll(rememberScrollState())
+                            .weight(2F)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.ArrowForward,
-                            contentDescription = "Arrow",
-                            modifier = Modifier
-                                .size(30.dp),
-                            tint = Color(0xFFc69f68)
+                        Text(
+                            style = MaterialTheme.typography.displaySmall,
+                            color = Color(0xFF70787c),
+                            text = updatedTranslatedText
                         )
                     }
-                    LanguageBox(text = "Text")
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 75.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(onClick = { onFavorites() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = "Favorite Icon",
-                            tint = Color(0xFF4b5975)
-                        )
-                    }
-                    FloatingActionButton(
-                        shape = CircleShape,
-                        containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
-                        contentColor = Color(0xFF141a22),
+                    Column(
                         modifier = Modifier
-                            .size(80.dp),
-                        interactionSource = interactionSource,
-                        onClick = {
-                            isRecording = !isRecording
-                            if (isRecording) {
-                                onRequestPermission()
-                                speechRecognizer?.startListening(recognizerIntent)
-                            } else {
-                                speechRecognizer?.stopListening()
+                            .weight(1F)
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
+                                                .background(Color(0xFFcfe6f1))
+                            .padding(top = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Top
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
+                                selectedLanguage = newText
+                            }
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowForward,
+                                contentDescription = "Arrow",
+                                modifier = Modifier
+                                    .padding(horizontal = 20.dp)
+                                    .size(30.dp),
+                                tint = Color(0xFF071e26)
+                            )
+                            LanguageBox(text = "Text")
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 75.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            IconButton(onClick = { onFavorites() }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Favorite,
+                                    contentDescription = "Favorite Icon",
+                                    tint = Color(0xFF4c626b)
+                                )
+                            }
+                            FloatingActionButton(
+                                shape = CircleShape,
+                                containerColor = if (isPressed) Color(0xFFcfe6f1) else Color(0xFF006780),
+                                contentColor = Color(0xFFcfe6f1),
+                                modifier = Modifier
+                                    .size(80.dp),
+                                interactionSource = interactionSource,
+                                onClick = {
+                                    isRecording = !isRecording
+                                    if (isRecording) {
+                                        onRequestPermission()
+                                        speechRecognizer?.startListening(recognizerIntent)
+                                    } else {
+                                        speechRecognizer?.stopListening()
+                                    }
+                                }
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_microphone),
+                                    contentDescription = "Microphone",
+                                    modifier = Modifier
+                                        .size(28.dp),
+                                    colorFilter = ColorFilter.tint(Color.White)
+                                )
+                            }
+                            IconButton(onClick = { onHistory() }) {
+                                Icon(
+                                    imageVector = Icons.Filled.DateRange,
+                                    contentDescription = "History Icon",
+                                    tint = Color(0xFF4c626b)
+                                )
                             }
                         }
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_microphone),
-                            contentDescription = "Microphone",
-                            modifier = Modifier
-                                .size(28.dp)
-                        )
-                    }
-                    IconButton(onClick = { onHistory() }) {
-                        Icon(
-                            imageVector = Icons.Filled.DateRange,
-                            contentDescription = "History Icon",
-                            tint = Color(0xFF4b5975)
-                        )
                     }
                 }
             }
-        }
-    }
 //    Surface(
 //        modifier = modifier,
 //        color = Color(0xFF191f28)

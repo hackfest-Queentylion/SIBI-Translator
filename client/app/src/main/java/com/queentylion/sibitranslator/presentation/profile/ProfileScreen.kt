@@ -52,8 +52,8 @@ fun ProfileScreen(
 ) {
     Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF191F28)),
+                .fillMaxSize(),
+//                .background(Color(0xFF191F28)),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -80,12 +80,15 @@ fun ProfileScreen(
 
         Button(
             onClick = onTranslate,
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color(0xFFc69f68),
-                contentColor = Color(0xFF191F28)
-            )
+//            colors = ButtonDefaults.buttonColors(
+//                backgroundColor = Color(0xFFc69f68),
+//                contentColor = Color(0xFF191F28)
+//            )
         ) {
-            Text(text = "Start Translation", color = Color(0xFF191F28))
+            Text(
+                text = "Start Translation",
+//                color = Color(0xFF191F28)
+            )
         }
 
         if(!isBluetoothConnected) {
@@ -238,12 +241,14 @@ fun ProfileScreen(
 
         Button(
             onClick = onSignOut,
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color(0xFFc69f68),
-                contentColor = Color(0xFF191F28)
-            )
+//            colors = ButtonDefaults.buttonColors(
+//                backgroundColor = Color(0xFFc69f68),
+//                contentColor = Color(0xFF191F28)
+//            )
         ) {
-            Text(text = "Sign out", color = Color(0xFF191F28))
+            Text(text = "Sign out",
+//                color = Color(0xFF191F28)
+            )
         }
     }
 }
