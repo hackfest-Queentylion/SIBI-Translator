@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "SIBI Translator"
 include(":app")
- 
+include(":app:libtensorflow")
