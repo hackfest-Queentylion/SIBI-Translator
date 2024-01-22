@@ -1,4 +1,4 @@
-package com.queentylion.sibitranslator.presentation
+package com.queentylion.sibitranslator
 
 import android.Manifest
 import android.app.Activity
@@ -65,7 +65,6 @@ import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.presentation.translator.Translator
 
 import dagger.hilt.android.AndroidEntryPoint
-import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

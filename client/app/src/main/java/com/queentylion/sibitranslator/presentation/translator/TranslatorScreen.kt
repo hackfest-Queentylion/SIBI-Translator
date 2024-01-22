@@ -38,7 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.queentylion.sibitranslator.presentation.LanguageBox
 import com.queentylion.sibitranslator.R
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -63,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.firebase.database.DatabaseReference
+import com.queentylion.sibitranslator.LanguageBox
 import com.queentylion.sibitranslator.components.ExposedDropdownMenuBox
 import com.queentylion.sibitranslator.data.ConnectionState
 import com.queentylion.sibitranslator.database.TranslationsRepository
