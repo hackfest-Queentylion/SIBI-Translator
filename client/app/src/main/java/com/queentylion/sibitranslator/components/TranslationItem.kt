@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,30 +47,24 @@ fun TranslationItem(
             .fillMaxWidth()
             .clickable { onClicked() }
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0x99CFE6F1)),
+            .background(MaterialTheme.colorScheme.secondaryContainer.copy(0.25f)),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Box(
+        Text(
+            text = text,
+            maxLines = 2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier
-                .width(300.dp)
-                .padding(vertical = 8.dp)
-        ) {
-            Text(
-                text = text,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .padding(vertical = 10.dp, horizontal = 10.dp),
-                style = TextStyle(
-                    color = Color(0xFF071e26),
-                    lineHeight = 27.sp,
-                    fontSize = 16.sp
-                )
-            )
-        }
+                .weight(0.8f)
+                .padding(top = 15.dp, bottom = 15.dp, start = 20.dp)
+        )
         IconButton(
-            modifier = Modifier.width(40.dp),
+            modifier = Modifier
+                .size(24.dp)
+                .weight(0.15f),
             onClick = {
                 favorite = !favorite
                 onFavorite()
@@ -77,7 +73,7 @@ fun TranslationItem(
             Icon(
                 imageVector = if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                 contentDescription = "Favorite Button",
-                tint = if (favorite) Color(0xFF006780) else Color(0xFF70787c)
+                tint = if (!isFavorite) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.tertiary
             )
         }
     }
