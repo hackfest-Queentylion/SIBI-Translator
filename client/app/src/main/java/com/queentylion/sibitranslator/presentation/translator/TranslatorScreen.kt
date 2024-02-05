@@ -38,18 +38,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.queentylion.sibitranslator.presentation.LanguageBox
 import com.queentylion.sibitranslator.R
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -60,10 +65,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.firebase.database.DatabaseReference
+import com.queentylion.sibitranslator.LanguageBox
+import com.queentylion.sibitranslator.components.CustomTextField
 import com.queentylion.sibitranslator.components.ExposedDropdownMenuBox
 import com.queentylion.sibitranslator.data.ConnectionState
 import com.queentylion.sibitranslator.database.TranslationsRepository
@@ -193,220 +204,179 @@ fun Translator(
         }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color.Black,
-                    actionIconContentColor = Color.Black,
-                    navigationIconContentColor = Color.Black
-                ),
-                navigationIcon = {
-                    IconButton(
-                        onClick = { onProfile() },
-                    ) {
-                        if (userData?.profilePictureUrl != null) {
-                            AsyncImage(
-                                model = userData.profilePictureUrl,
-                                contentDescription = "Profile picture",
-                                modifier = Modifier
-                                    .size(29.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp, start = 12.dp, end = 12.dp)
+        ) {
+            androidx.compose.material3.IconButton(onClick = { onProfile() }) {
+                Icon(
+                    imageVector = Icons.Filled.AccountCircle,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier.size(30.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row {
+                Text(
+                    text = "SIBI ",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 2.dp),
+                )
+                Text(
+                    text = "Translator",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Normal
+                )
+            }
+            androidx.compose.material3.IconButton(onClick = { onSpeakerClick(if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()) }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_volume),
+                    contentDescription = "Start",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    bottom = 10.dp,
+                    start = 45.dp,
+                    end = 45.dp
+                )
+                .verticalScroll(rememberScrollState())
+                .weight(2F)
+        ) {
+            Text(
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString(),
+                modifier = Modifier.padding(top = 20.dp)
+            )
+        }
+        Column(
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            Row(
+                modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
+                    selectedLanguage = newText
+                    if (userData != null) {
+                        val googleAuthController = GoogleAuthController()
+                        userData.accessToken = googleAuthController.getAccessToken()
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Filled.ArrowForward,
+                    contentDescription = "Arrow",
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                CustomTextField(text = "Text")
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 75.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                androidx.compose.material3.IconButton(onClick = { onFavorites() }) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Favorite Icon",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .size(80.dp),
+                    onClick = {
+                        if (selectedLanguage == "Gesture") {
+                            isHandSigning = !isHandSigning
+                            if (isHandSigning) {
+                                // Make sure connected to glove ble gimana
+                                if(gloveViewModel.connectionState == ConnectionState.Connected){
+
+                                    if (userData != null) {
+                                        userData.accessToken?.let {
+                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
+                                                it
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    isHandSigning = false
+                                    Toast.makeText(context, "Please Connect To Glove", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                viewModelTranslation.endStreamingGesture()
+                                onSpeakerClick(viewModelTranslation.getSentencesString())
+                                val translationsRepository = TranslationsRepository(databaseReference)
+                                translationsRepository.writeNewTranslations(userData?.userId, viewModelTranslation.getSentencesString())
+                            }
+                        } else {
+                            isRecording = !isRecording
+                            if (isRecording) {
+                                onRequestPermission()
+                                speechRecognizer?.startListening(recognizerIntent)
+                            } else {
+                                speechRecognizer?.stopListening()
+                            }
+                        }
+                    }
+                ) {
+                    if (selectedLanguage == "Gesture") {
+                        if (!isHandSigning) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_handbegin),
+                                contentDescription = "Favorite Icon",
+                                modifier = Modifier.size(28.dp)
                             )
                         } else {
                             Icon(
-                                imageVector = Icons.Filled.AccountCircle,
-                                contentDescription = "Localized description",
-                                modifier = Modifier.size(29.dp)
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { onSpeakerClick(if (selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()) },
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_speaker),
-                            contentDescription = "Localized description",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
-                title = {
-                    Row {
-                        Text(
-                            text = "SIBI ",
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                        Text(
-                            text = "Translator",
-                            fontWeight = FontWeight.Normal
-                        )
-                    }
-                }
-            )
-        },
-        contentColor = Color(0xFF70787c)
-    ) { innerPadding ->
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        vertical = innerPadding.calculateTopPadding() + 20.dp,
-                        horizontal = 45.dp
-                    )
-                    .verticalScroll(rememberScrollState())
-                    .weight(2F)
-            ) {
-                Text(
-                    style = MaterialTheme.typography.displaySmall,
-                    color = Color(0xFF70787c),
-//                            text = updatedTranslatedText
-                    text = if (selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1F)
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
-                    .background(Color(0xFFcfe6f1))
-                    .padding(top = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                Row(
-                    modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
-                        selectedLanguage = newText
-                        if (userData != null) {
-
-                        }
-                    }
-                    Icon(
-                        imageVector = Icons.Rounded.ArrowForward,
-                        contentDescription = "Arrow",
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .size(30.dp),
-                        tint = Color(0xFF071e26)
-                    )
-                    LanguageBox(text = "Text")
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 75.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(onClick = { onFavorites() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = "Favorite Icon",
-                            tint = Color(0xFF4c626b)
-                        )
-                    }
-                    if (selectedLanguage != "Gesture") {
-                        FloatingActionButton(
-                            shape = CircleShape,
-                            containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
-                            contentColor = Color(0xFF141a22),
-                            modifier = Modifier
-                                .size(80.dp),
-                            interactionSource = interactionSource,
-                            onClick = {
-                                isRecording = !isRecording
-                                if (isRecording) {
-                                    onRequestPermission()
-                                    speechRecognizer?.startListening(recognizerIntent)
-                                } else {
-                                    speechRecognizer?.stopListening()
-                                }
-                            }
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_microphone),
-                                contentDescription = "Microphone",
-                                modifier = Modifier
-                                    .size(28.dp)
+                                painter = painterResource(id = R.drawable.ic_handend),
+                                contentDescription = "Favorite Icon",
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     } else {
-                        FloatingActionButton(
-                            shape = CircleShape,
-                            containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
-                            contentColor = Color(0xFF141a22),
-                            modifier = Modifier
-                                .size(80.dp),
-                            interactionSource = interactionSource,
-                            onClick = {
-                                isHandSigning = !isHandSigning
-                                if (isHandSigning) {
-                                    // Make sure connected to glove ble gimana
-                                    if (gloveViewModel.connectionState == ConnectionState.Connected) {
-
-                                        if (userData != null) {
-                                            userData.accessToken?.let {
-                                                viewModelTranslation.beginStreamingGesture(
-                                                    gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
-                                                    it
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        isHandSigning = false
-                                        Toast.makeText(
-                                            context,
-                                            "Please Connect To Glove",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                } else {
-                                    viewModelTranslation.endStreamingGesture()
-                                    onSpeakerClick(viewModelTranslation.getSentencesString())
-                                    val translationsRepository =
-                                        TranslationsRepository(databaseReference)
-                                    translationsRepository.writeNewTranslations(
-                                        userData?.userId,
-                                        viewModelTranslation.getSentencesString()
-                                    )
-                                }
-                            }
-                        ) {
-                            if (!isHandSigning) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_handbegin),
-                                    contentDescription = "HandBegin",
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_handend),
-                                    contentDescription = "HandEnd",
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                )
-                            }
-                        }
-                    }
-                    IconButton(onClick = { onHistory() }) {
                         Icon(
-                            imageVector = Icons.Filled.DateRange,
-                            contentDescription = "History Icon",
-                            tint = Color(0xFF4c626b)
+                            painter = painterResource(id = R.drawable.ic_microphone),
+                            contentDescription = "Favorite Icon",
+                            modifier = Modifier.size(28.dp)
                         )
                     }
+                }
+                androidx.compose.material3.IconButton(onClick = { onHistory() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_history),
+                        contentDescription = "Favorite Icon",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
     }
+
 }
