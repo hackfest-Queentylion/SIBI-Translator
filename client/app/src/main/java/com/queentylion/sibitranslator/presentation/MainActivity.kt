@@ -63,6 +63,7 @@ import com.queentylion.sibitranslator.presentation.sign_in.SignInScreen
 import com.queentylion.sibitranslator.presentation.sign_in.SignInViewModel
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.presentation.translator.Translator
+import com.queentylion.sibitranslator.util.GoogleAuthController
 
 import dagger.hilt.android.AndroidEntryPoint
 import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var recognizerIntent: Intent
     private lateinit var databaseReference: DatabaseReference
     private lateinit var textToSpeech: TextToSpeech
+    private lateinit var googleAuthController: GoogleAuthController
 
     @Inject
     lateinit var bluetoothAdapter: BluetoothAdapter
@@ -125,6 +127,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        googleAuthController = GoogleAuthController()
 
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
         recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
@@ -308,6 +312,7 @@ class MainActivity : ComponentActivity() {
                                 recognizerIntent = recognizerIntent,
                                 initialText = it,
                                 databaseReference = databaseReference,
+                                googleAuthController = googleAuthController,
                                 userData = googleAuthUiClient.getSignedInUser(),
                                 onHistory = {
                                     lifecycleScope.launch {

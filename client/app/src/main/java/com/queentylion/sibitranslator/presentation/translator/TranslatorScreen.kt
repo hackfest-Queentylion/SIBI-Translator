@@ -54,6 +54,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.ColorFilter
@@ -86,13 +87,15 @@ fun Translator(
     databaseReference: DatabaseReference,
     initialText: String,
     userData: UserData? = null,
+    googleAuthController: GoogleAuthController,
     onHistory: () -> Unit,
     onFavorites: () -> Unit,
     onSpeakerClick: (String) -> Unit,
     onProfile: () -> Unit,
     viewModelTranslation: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
 ) {
-    val gloveViewModel: GloveSensorsViewModel = hiltViewModel(LocalContext.current as ComponentActivity)
+    val gloveViewModel: GloveSensorsViewModel =
+        hiltViewModel(LocalContext.current as ComponentActivity)
     var selectedLanguage by rememberSaveable {
         mutableStateOf("Speech")
     }
@@ -111,9 +114,14 @@ fun Translator(
     val isPressed = interactionSource.collectIsPressedAsState().value
     val coroutineScope = rememberCoroutineScope()
 
+    var accessToken by rememberSaveable {
+        mutableStateOf("")
+    }
+
     fun updateTranslatedText(newText: String) {
         translatedText = newText
     }
+
     val context = LocalContext.current
 
     val recognitionListener = object : RecognitionListener {
@@ -144,7 +152,7 @@ fun Translator(
                     results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.get(0)
                 speechResult?.let {
                     Log.d("Speech Result", "Recognized speech: $speechResult")
-                     updateTranslatedText(speechResult)
+                    updateTranslatedText(speechResult)
                     isRecording = false
                     val translationsRepository = TranslationsRepository(databaseReference)
                     translationsRepository.writeNewTranslations(userData?.userId, speechResult)
@@ -165,7 +173,14 @@ fun Translator(
                 }
             }
         }
+
         override fun onEvent(eventType: Int, params: Bundle?) {}
+    }
+
+    LaunchedEffect(selectedLanguage) {
+        if (selectedLanguage == "Gesture") {
+            accessToken = googleAuthController.getAccessToken()
+        }
     }
 
     DisposableEffect(Unit) {
@@ -211,7 +226,7 @@ fun Translator(
                 },
                 actions = {
                     IconButton(
-                        onClick = { onSpeakerClick(if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()) },
+                        onClick = { onSpeakerClick(if (selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()) },
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_speaker),
@@ -237,255 +252,161 @@ fun Translator(
         },
         contentColor = Color(0xFF70787c)
     ) { innerPadding ->
-                Column {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                vertical = innerPadding.calculateTopPadding() + 20.dp,
-                                horizontal = 45.dp
-                            )
-                            .verticalScroll(rememberScrollState())
-                            .weight(2F)
-                    ) {
-                        Text(
-                            style = MaterialTheme.typography.displaySmall,
-                            color = Color(0xFF70787c),
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        vertical = innerPadding.calculateTopPadding() + 20.dp,
+                        horizontal = 45.dp
+                    )
+                    .verticalScroll(rememberScrollState())
+                    .weight(2F)
+            ) {
+                Text(
+                    style = MaterialTheme.typography.displaySmall,
+                    color = Color(0xFF70787c),
 //                            text = updatedTranslatedText
-                            text = if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()
+                    text = if (selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1F)
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
+                    .background(Color(0xFFcfe6f1))
+                    .padding(top = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                Row(
+                    modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
+                        selectedLanguage = newText
+                        if (userData != null) {
+
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowForward,
+                        contentDescription = "Arrow",
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .size(30.dp),
+                        tint = Color(0xFF071e26)
+                    )
+                    LanguageBox(text = "Text")
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 75.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(onClick = { onFavorites() }) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "Favorite Icon",
+                            tint = Color(0xFF4c626b)
                         )
                     }
-                    Column(
-                        modifier = Modifier
-                            .weight(1F)
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
-                                                .background(Color(0xFFcfe6f1))
-                            .padding(top = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Top
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
-                                selectedLanguage = newText
-                                if (userData != null) {
-                                    val googleAuthController = GoogleAuthController()
-                                    userData.accessToken = googleAuthController.getAccessToken()
+                    if (selectedLanguage != "Gesture") {
+                        FloatingActionButton(
+                            shape = CircleShape,
+                            containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
+                            contentColor = Color(0xFF141a22),
+                            modifier = Modifier
+                                .size(80.dp),
+                            interactionSource = interactionSource,
+                            onClick = {
+                                isRecording = !isRecording
+                                if (isRecording) {
+                                    onRequestPermission()
+                                    speechRecognizer?.startListening(recognizerIntent)
+                                } else {
+                                    speechRecognizer?.stopListening()
                                 }
                             }
-                            Icon(
-                                imageVector = Icons.Rounded.ArrowForward,
-                                contentDescription = "Arrow",
-                                modifier = Modifier
-                                    .padding(horizontal = 20.dp)
-                                    .size(30.dp),
-                                tint = Color(0xFF071e26)
-                            )
-                            LanguageBox(text = "Text")
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 75.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            IconButton(onClick = { onFavorites() }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Favorite,
-                                    contentDescription = "Favorite Icon",
-                                    tint = Color(0xFF4c626b)
-                                )
-                            }
-                            if(selectedLanguage != "Gesture") {
-                                FloatingActionButton(
-                                    shape = CircleShape,
-                                    containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
-                                    contentColor = Color(0xFF141a22),
-                                    modifier = Modifier
-                                        .size(80.dp),
-                                    interactionSource = interactionSource,
-                                    onClick = {
-                                        isRecording = !isRecording
-                                        if (isRecording) {
-                                            onRequestPermission()
-                                            speechRecognizer?.startListening(recognizerIntent)
-                                        } else {
-                                            speechRecognizer?.stopListening()
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_microphone),
+                                contentDescription = "Microphone",
+                                modifier = Modifier
+                                    .size(28.dp)
+                            )
+                        }
+                    } else {
+                        FloatingActionButton(
+                            shape = CircleShape,
+                            containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
+                            contentColor = Color(0xFF141a22),
+                            modifier = Modifier
+                                .size(80.dp),
+                            interactionSource = interactionSource,
+                            onClick = {
+                                isHandSigning = !isHandSigning
+                                if (isHandSigning) {
+                                    // Make sure connected to glove ble gimana
+                                    if (gloveViewModel.connectionState == ConnectionState.Connected) {
+
+                                        if (userData != null) {
+                                            userData.accessToken?.let {
+                                                viewModelTranslation.beginStreamingGesture(
+                                                    gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
+                                                    it
+                                                )
+                                            }
                                         }
+                                    } else {
+                                        isHandSigning = false
+                                        Toast.makeText(
+                                            context,
+                                            "Please Connect To Glove",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.ic_microphone),
-                                        contentDescription = "Microphone",
-                                        modifier = Modifier
-                                            .size(28.dp)
+                                } else {
+                                    viewModelTranslation.endStreamingGesture()
+                                    onSpeakerClick(viewModelTranslation.getSentencesString())
+                                    val translationsRepository =
+                                        TranslationsRepository(databaseReference)
+                                    translationsRepository.writeNewTranslations(
+                                        userData?.userId,
+                                        viewModelTranslation.getSentencesString()
                                     )
                                 }
-                            } else {
-                                FloatingActionButton(
-                                    shape = CircleShape,
-                                    containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
-                                    contentColor = Color(0xFF141a22),
-                                    modifier = Modifier
-                                        .size(80.dp),
-                                    interactionSource = interactionSource,
-                                    onClick = {
-                                        isHandSigning = !isHandSigning
-                                        if (isHandSigning) {
-                                            // Make sure connected to glove ble gimana
-                                            if(gloveViewModel.connectionState == ConnectionState.Connected){
-
-                                                if (userData != null) {
-                                                    userData.accessToken?.let {
-                                                        viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
-                                                            it
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                isHandSigning = false
-                                                Toast.makeText(context, "Please Connect To Glove", Toast.LENGTH_SHORT).show()
-                                            }
-                                        } else {
-                                            viewModelTranslation.endStreamingGesture()
-                                            onSpeakerClick(viewModelTranslation.getSentencesString())
-                                            val translationsRepository = TranslationsRepository(databaseReference)
-                                            translationsRepository.writeNewTranslations(userData?.userId, viewModelTranslation.getSentencesString())
-                                        }
-                                    }
-                                ) {
-                                    if(!isHandSigning) {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.ic_handbegin),
-                                            contentDescription = "HandBegin",
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                        )
-                                    } else {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.ic_handend),
-                                            contentDescription = "HandEnd",
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                        )
-                                    }
-                                }
                             }
-                            IconButton(onClick = { onHistory() }) {
-                                Icon(
-                                    imageVector = Icons.Filled.DateRange,
-                                    contentDescription = "History Icon",
-                                    tint = Color(0xFF4c626b)
+                        ) {
+                            if (!isHandSigning) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_handbegin),
+                                    contentDescription = "HandBegin",
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_handend),
+                                    contentDescription = "HandEnd",
+                                    modifier = Modifier
+                                        .size(28.dp)
                                 )
                             }
                         }
+                    }
+                    IconButton(onClick = { onHistory() }) {
+                        Icon(
+                            imageVector = Icons.Filled.DateRange,
+                            contentDescription = "History Icon",
+                            tint = Color(0xFF4c626b)
+                        )
                     }
                 }
             }
-//    Surface(
-//        modifier = modifier,
-//        color = Color(0xFF191f28)
-//    ) {
-//        Column {
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(
-//                        vertical = 35.dp,
-//                        horizontal = 45.dp
-//                    )
-//                    .verticalScroll(rememberScrollState())
-//                    .weight(2F)
-//            ) {
-//                Text(
-//                    style = MaterialTheme.typography.displaySmall,
-//                    color = Color(0xFF4b5975),
-//                    text = updatedTranslatedText
-//                )
-//            }
-//            Column(
-//                modifier = Modifier
-//                    .weight(1F)
-//                    .fillMaxSize()
-//                    .clip(RoundedCornerShape(topStart = 53.dp, topEnd = 53.dp))
-//                    .background(Color(0xFF141a22))
-//                    .padding(top = 10.dp),
-//                horizontalAlignment = Alignment.CenterHorizontally,
-//                verticalArrangement = Arrangement.Top
-//            ) {
-//                Row(
-//                    modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
-//                    verticalAlignment = Alignment.CenterVertically
-//                ) {
-//                    ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture"))
-//                    FloatingActionButton(
-//                        modifier = Modifier
-//                            .padding(horizontal = 20.dp)
-//                            .size(30.dp),
-//                        containerColor = Color.Transparent,
-//                        onClick = { isTextToSpeech = !isTextToSpeech }
-//                    ) {
-//                        Image(
-//                            painter = painterResource(id = R.drawable.ic_switch),
-//                            contentDescription = "what",
-//                            modifier = Modifier
-//                                .size(30.dp),
-//                            colorFilter = ColorFilter.tint(Color(0xFFc69f68))
-//                        )
-//                    }
-//                    LanguageBox(text = "Text")
-//                }
-//                Row(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(horizontal = 75.dp),
-//                    verticalAlignment = Alignment.CenterVertically,
-//                    horizontalArrangement = Arrangement.SpaceBetween
-//                ) {
-//                    IconButton(onClick = { onFavorites() }) {
-//                        Icon(
-//                            imageVector = Icons.Filled.Favorite,
-//                            contentDescription = "Favorite Icon",
-//                            tint = Color(0xFF4b5975)
-//                        )
-//                    }
-//                    FloatingActionButton(
-//                        shape = CircleShape,
-//                        containerColor = if (isPressed) Color(0xFFccccb5) else Color(0xFFc69f68),
-//                        contentColor = Color(0xFF141a22),
-//                        modifier = Modifier
-//                            .size(80.dp),
-//                        interactionSource = interactionSource,
-//                        onClick = {
-//                            isRecording = !isRecording
-//                            if (isRecording) {
-//                                onRequestPermission()
-//                                speechRecognizer?.startListening(recognizerIntent)
-//                            } else {
-//                                speechRecognizer?.stopListening()
-//                            }
-//                        }
-//                    ) {
-//                        Image(
-//                            painter = painterResource(id = R.drawable.ic_microphone),
-//                            contentDescription = "Microphone",
-//                            modifier = Modifier
-//                                .size(28.dp)
-//                        )
-//                    }
-//                    IconButton(onClick = { onHistory() }) {
-//                        Icon(
-//                            imageVector = Icons.Filled.DateRange,
-//                            contentDescription = "History Icon",
-//                            tint = Color(0xFF4b5975)
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//    }
+        }
+    }
 }

@@ -1,37 +1,37 @@
 package com.queentylion.sibitranslator.util
 
 import com.google.auth.oauth2.GoogleCredentials
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class GoogleAuthController {
     private val credentialsJSON = "{\n" +
             "  \"type\": \"service_account\",\n" +
             "  \"project_id\": \"sturdy-hangar-409704\",\n" +
-            "  \"private_key_id\": \"db0c9d5f19898ea9b9a7be292de9eefcdfde0a15\",\n" +
-            "  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDJ/meR5XY3drB6\\nVG0R32ZcAiKIcyQB7p2bR56I/AGe5TcSKErBtKDkR7NBrYskPdeGwSQo9dFowrxs\\nRWNZjlqr+kuq34h619URR9k55edGQHDof2Jxbu9sv+reXYAWQ2Two5kcRPDA/UTv\\n1tVvD27MFE9ZFOwD99xAG4+Uk3UpqeB0FDja0xwcDA2CBwjVm19kLTgCfw8wn658\\nDpkEOMtwa8PG20tkLmM9S9nXhQ/7ZIf75VS9v9+6GtaIArT5lEF014LlUFC6+zDb\\n8Gqdn2IRwvVJF9+suDYkQ345oK31de27b+PovT0+XmrCHtmXE9TkFJTi3PjTmuxS\\n9W6laOJrAgMBAAECggEATnj/2o3HFfgNypCHCQT9uqv3p4P3zqpZX2x8+iHRLV5G\\nPU8a79MRGG6EhPT7U9qUoxzgw+rv7l+NHRD97lpf/mUQRXNvDa5Q79Q2X4hiB4hc\\ndO6cG45qBJkwkS/I5Z1MFzKvdmyQDaG3SOfw5iMcO7t+MhDvOgFudxdd+e4pe8P6\\nWCcjGwy35YTZAup2HJrv6dq3YRohsZ8GYRgLgBdtr6fzFOVbjpU2it3IvJ6nchRN\\nSIfi+7hL8gH7CLkhOPLHdEdq1rJTGKXzyswoLJbiTgzFbUZRe6yK6V/H3UzJTRK5\\nbdQvUoOLrdphDeuOk30T8vCZyG8kj0vdY7IdfUSsKQKBgQD6Phk+D2wBFqPd82kj\\ntkEqJX1OImXHWKmlGex2mG+wtIkd1RV5kKAg9sm6kpU5a656CyI3eXZZDeF/cF1l\\nQUH+uHUY4QCnNDg289/Zei6jhNVLtOqXIpoU7qc6UkHbfpp/S+C+wSkVXEDgggMD\\nQ7I8ybUrPvlC1Mad4D19vroRcwKBgQDOpCAzLMZuN5Py7diRyFzkdjVadzooJfqh\\ntlPwnkgMY9GwPK/CiJ1YR4+N5zJ4d178gx40n3nwL0YathevaSE5dbINSlifhGNh\\ngOcvzjsB8DlDvlGvI4DWNN/dwaDTZppzyM3pICEkYp1yrdIKRK9CCzwWgwlFSW/G\\n2od3CxHNKQKBgFYpLX3Nx400Y2WXWrseFJ/TWqqdc1fI8lhTbbSD1ekMsC1iYcuC\\nfW/8KQchU1n69o806CobmyEcg2jionWrm3J9xmuzhQsNEtHw9EEoLYjFwr8XYrJ5\\nCn5skY2mJuDRXZa45IApd+DP69KhUTI9i9AcT1G9lAtrwZs4S1PRaLV7AoGBAMjt\\nhDXeis/vENg9d8FBTzoCyxw9JHqXe140+OfWMH6DrQgt6kVBK6YEZ0z3CvdiMyVb\\npUpL63ilrwgYGW3BzsGddNVBfm0VgMD1Y1bztCLNYBFEBQ9EeWlQHoH1XhlRAkwl\\nbDsLt842aZxx8fN0F+ojHHlTTvdlUd/M673QMK4JAoGBAN6bbcSvpAEJSEjjoYID\\np9nVmMSHC7IY1guIqprUNvm3XvRUYnlRRu0VM9xApzl+DE+1lUuAwkijWn4yLmHx\\nxudUziCtSezRqV+VkVozzcKVCFlo9gaKzscuzR/8Nj73kWyPhucnaDzX5OO+gnRZ\\nAud4OMq3VIolhlC5DWeGszeN\\n-----END PRIVATE KEY-----\\n\",\n" +
-            "  \"client_email\": \"267809006279-compute@developer.gserviceaccount.com\",\n" +
-            "  \"client_id\": \"103241607536970060330\",\n" +
+            "  \"private_key_id\": \"664dc3f662d031633759761895a0b1ff198bcd57\",\n" +
+            "  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDBXQERG+COp10z\\njMVV590594A112L9lxQf5Lw7BBf6AKh7fjAFE7AL0f8lcPlZKvKaW4tlVUjhP9Wd\\nH6JK9Cc6vMo0aFsaQnb5GYqy3FBjhVYm2e8i3H/C0PkUP/SQ7EIWlinU9/RRqjc+\\nxjH7dlI8z+V0rjwZ8r2FfZZ5bwHlvQBtqDGVYuycmYzylEyfnee/fKRkAlv1Tug+\\nPiEUI5yi1fS5cLYOnXZryFptyEF5Fr8eP2tg68IVfasi2U6uz/ukG6ziN4DKo28A\\ndXTVvvxAqwgVFsj8hl3zcGHlU9mxOV0mnWMP9XbZayhLqa3pokelQ3pOk1hh4DGk\\no2L1E/iFAgMBAAECggEAJeQeQeaHFh1I38Gtp9xkVygfeS2Iae4xlOBjXGM8eZKo\\ncW60ZUJK5L4VdBZT3nvSh5n50nUob29tYjlhObPnfhShwSxT8ezlWIH/UnZm0GHA\\nFKPvPxMbfCcsMCIqQD3z424wq1mdiGVFJyl6gO7aRa1tpvQ/tcwCBIcsNgahRg3w\\nmXvLE7GX1kLoidI1d4SYn11mLy+fYtotqKFQzXWqDRPy5Dzd++oqM8X1ej8uRtCz\\n9IAk6CkBDJwzK6+d0Gj/idayd6qYYtUU19OmEyilLa+Xk2750em1hh1KNiJhgqqe\\nTxw6fcuMtfYmuUB9HUANZpq07nyK5+80VvI5oMS8DwKBgQDp4y0upmWYPq0m2YPz\\ntokdAAJcY9pE2+ZDvT6P9QCN10TwsfPwgOn+LGXD7Ays7SYa+Il7WHiFojX101Dc\\nKUHH0LTlde2fU/ncJ41tsWUUjrC6fos2mpBphDyJ3Qpcnukk1VJnfc/rIN/9MiH0\\ncWM2o1fUS+RgzE+fzNeV8jzsVwKBgQDTpQO576n3OqK8xohuzaGP0H2hEC1hl6iF\\nMRL+ZK/KUVUTS3n5/mdj1ivVrtHiv0ADI0lo6mG65e83aTZFK/d5VAomgpA54aNK\\nfUffI3/m83mQtvTgiQ9zkNgznqp5QNYYkYJJe1JWQhb142plAWCxF8QMmyC4uTG4\\nGlgGFOw4gwKBgGSDylYjEsRUI0vv7QJfLxv0dg9IpnQzYQk5mlp5u4w5uJoMkD6K\\n2ITwhaemmWfz3w12RHdq9RjRNol4EGcdn/SEoEmA3ec8SsQvh1teAofMLu1nFuMX\\nl/qQ5weEpEBb1uyKdQifDC0LitegpPENjcrcdhF5sCNditatTPVXDpGvAoGBAL3o\\nVb2j1cknbhshsg5qqUvYcsHxOCdX5DkPXdGzGyHZdRNJKHwv0Sn+ZXrp0R87KP8n\\nzJk9ptADvnDkEXRkDT1rMWh4w12Mn+8ZF0KcIgpj8nLuGDDaC2lRUQ6QkrsWeIW3\\nG0dARxNrXhrpIvDbGZ4OizYchHH8iyZ9TPq4D3ZtAoGBAK1Ur58RH+5mcD0qiqCW\\nE7VoBrQxgEyjUhBlReUFjiqymyc/maG/x+WccCZpc37NwFN9tGsdGtxps2KZb6Wg\\nQTdFhIUkqq7ayXE32b+vzqo66Hera5qxh98ompDBw10CZhwepxIaOziBX0DVZdfc\\njW5p+d9U3CzrOgyyJxs9Str2\\n-----END PRIVATE KEY-----\\n\",\n" +
+            "  \"client_email\": \"hackfest-deadliner@sturdy-hangar-409704.iam.gserviceaccount.com\",\n" +
+            "  \"client_id\": \"102289979521276475594\",\n" +
             "  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n" +
             "  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n" +
             "  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n" +
-            "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/267809006279-compute%40developer.gserviceaccount.com\",\n" +
+            "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/hackfest-deadliner%40sturdy-hangar-409704.iam.gserviceaccount.com\",\n" +
             "  \"universe_domain\": \"googleapis.com\"\n" +
             "}"
 
-    fun getAccessToken(): String {
+    suspend fun getAccessToken(): String {
         val credentials: GoogleCredentials =
             GoogleCredentials.fromStream(credentialsJSON.byteInputStream())
 
-        val thread = Thread {
+        return withContext(Dispatchers.IO) {
             try{
                 credentials.refreshIfExpired()
+                credentials.accessToken.tokenValue
             } catch (e: Exception) {
                 e.printStackTrace()
+                ""
             }
         }
-        thread.start()
 
-
-
-        return credentials.accessToken.tokenValue
     }
 }
