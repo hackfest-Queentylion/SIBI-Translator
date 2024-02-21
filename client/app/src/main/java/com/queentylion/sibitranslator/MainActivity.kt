@@ -296,7 +296,6 @@ class MainActivity : ComponentActivity() {
                             textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
                         }
 
-<<<<<<< HEAD:client/app/src/main/java/com/queentylion/sibitranslator/presentation/MainActivity.kt
                     composable(
                         "translator?initialText={initialText}",
                         arguments = listOf(navArgument("initialText") {
@@ -317,26 +316,6 @@ class MainActivity : ComponentActivity() {
                                 onHistory = {
                                     lifecycleScope.launch {
                                         navController.navigate("history")
-=======
-                        composable(
-                            "translator?initialText={initialText}",
-                            arguments = listOf(navArgument("initialText") {
-                                defaultValue = "Say Something"
-                            })
-                        ) { backStackEntry ->
-                            backStackEntry.arguments?.getString("initialText")?.let {
-                                Translator(
-                                    Modifier
-                                        .fillMaxSize(),
-                                    onRequestPermission = { checkPermissionAndStart() },
-                                    speechRecognizer = speechRecognizer,
-                                    recognizerIntent = recognizerIntent,
-                                    initialText = it,
-                                    databaseReference = databaseReference,
-                                    userData = googleAuthUiClient.getSignedInUser(),
-                                    onHistory = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("history")
                                         }
                                     },
                                     onFavorites = {
@@ -351,7 +330,6 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onSpeakerClick = { text ->
                                         speakOut(text)
->>>>>>> 874b7528c96b77bc7eb2c3478c92832a06655bd0:client/app/src/main/java/com/queentylion/sibitranslator/MainActivity.kt
                                     }
                                 )
                             }
