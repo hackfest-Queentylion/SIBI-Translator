@@ -41,6 +41,7 @@ android {
     }
     buildFeatures {
         compose = true
+        mlModelBinding = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -82,6 +83,9 @@ dependencies {
     //DI
     implementation ("androidx.hilt:hilt-navigation-compose:1.0.0")
     implementation ("com.google.dagger:hilt-android:2.48")
+    implementation("org.tensorflow:tensorflow-lite-support:0.1.0")
+    implementation("org.tensorflow:tensorflow-lite-metadata:0.1.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.3.0")
     kapt ("com.google.dagger:hilt-android-compiler:2.48")
     kapt ("androidx.hilt:hilt-compiler:1.0.0")
 

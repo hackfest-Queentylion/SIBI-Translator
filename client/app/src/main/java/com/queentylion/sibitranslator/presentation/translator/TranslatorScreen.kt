@@ -59,6 +59,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.ColorFilter
@@ -97,13 +98,15 @@ fun Translator(
     databaseReference: DatabaseReference,
     initialText: String,
     userData: UserData? = null,
+    googleAuthController: GoogleAuthController,
     onHistory: () -> Unit,
     onFavorites: () -> Unit,
     onSpeakerClick: (String) -> Unit,
     onProfile: () -> Unit,
     viewModelTranslation: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
 ) {
-    val gloveViewModel: GloveSensorsViewModel = hiltViewModel(LocalContext.current as ComponentActivity)
+    val gloveViewModel: GloveSensorsViewModel =
+        hiltViewModel(LocalContext.current as ComponentActivity)
     var selectedLanguage by rememberSaveable {
         mutableStateOf("Speech")
     }
@@ -122,9 +125,14 @@ fun Translator(
     val isPressed = interactionSource.collectIsPressedAsState().value
     val coroutineScope = rememberCoroutineScope()
 
+    var accessToken by rememberSaveable {
+        mutableStateOf("")
+    }
+
     fun updateTranslatedText(newText: String) {
         translatedText = newText
     }
+
     val context = LocalContext.current
 
     val recognitionListener = object : RecognitionListener {
@@ -155,7 +163,7 @@ fun Translator(
                     results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.get(0)
                 speechResult?.let {
                     Log.d("Speech Result", "Recognized speech: $speechResult")
-                     updateTranslatedText(speechResult)
+                    updateTranslatedText(speechResult)
                     isRecording = false
                     val translationsRepository = TranslationsRepository(databaseReference)
                     translationsRepository.writeNewTranslations(userData?.userId, speechResult)
@@ -176,7 +184,14 @@ fun Translator(
                 }
             }
         }
+
         override fun onEvent(eventType: Int, params: Bundle?) {}
+    }
+
+    LaunchedEffect(selectedLanguage) {
+        if (selectedLanguage == "Gesture") {
+            accessToken = googleAuthController.getAccessToken()
+        }
     }
 
     DisposableEffect(Unit) {
