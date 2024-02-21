@@ -82,6 +82,7 @@ import com.queentylion.sibitranslator.presentation.profile.GloveSensorsViewModel
 import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.ui.theme.SIBITranslatorTheme
 import com.queentylion.sibitranslator.util.GoogleAuthController
+import com.queentylion.sibitranslator.util.Resource
 import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -134,6 +135,7 @@ fun Translator(
     }
 
     val context = LocalContext.current
+
 
     val recognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
@@ -280,7 +282,10 @@ fun Translator(
                     selectedLanguage = newText
                     if (userData != null) {
                         val googleAuthController = GoogleAuthController()
-                        userData.accessToken = googleAuthController.getAccessToken()
+                        coroutineScope.launch {
+                            userData.accessToken = googleAuthController.getAccessToken()
+                        }
+
                     }
                 }
                 Icon(
