@@ -2,11 +2,10 @@ package com.queentylion.sibitranslator.presentation.history
 
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -59,17 +58,17 @@ fun HistoryScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
                 .fillMaxWidth()
                 .padding(
-                    vertical = innerPadding.calculateTopPadding() + 16.dp,
-                    horizontal = 18.dp
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = innerPadding.calculateBottomPadding(),
+                    start = 18.dp,
+                    end = 18.dp
                 ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            translations.forEach { item ->
+            items(translations) { item ->
                 TranslationItem(
                     text = item.translation,
                     isFavorite = item.isFavorite,

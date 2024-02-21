@@ -347,8 +347,8 @@ fun Translator(
                         }
                     } else {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_microphone),
-                            contentDescription = "Favorite Icon",
+                            painter = painterResource(id = R.drawable.baseline_interpreter_mode_24),
+                            contentDescription = "Start Conversation Icon",
                             modifier = Modifier.size(28.dp)
                         )
                     }

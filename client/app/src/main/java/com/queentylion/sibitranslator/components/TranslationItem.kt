@@ -46,6 +46,7 @@ fun TranslationItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClicked() }
+            .padding(bottom = 16.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer.copy(0.25f)),
         verticalAlignment = Alignment.CenterVertically,
