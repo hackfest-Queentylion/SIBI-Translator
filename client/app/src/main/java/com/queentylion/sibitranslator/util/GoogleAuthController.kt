@@ -19,19 +19,19 @@ class GoogleAuthController {
             "  \"universe_domain\": \"googleapis.com\"\n" +
             "}"
 
-    suspend fun getAccessToken(): String {
-        val credentials: GoogleCredentials =
-            GoogleCredentials.fromStream(credentialsJSON.byteInputStream())
-
-        return withContext(Dispatchers.IO) {
-            try{
-                credentials.refreshIfExpired()
-                credentials.accessToken.tokenValue
-            } catch (e: Exception) {
-                e.printStackTrace()
-                ""
-            }
-        }
-
-    }
+//    suspend fun getAccessToken(): String {
+//        val credentials: GoogleCredentials =
+//            GoogleCredentials.fromStream(credentialsJSON.byteInputStream())
+//
+//        return withContext(Dispatchers.IO) {
+//            try{
+//                credentials.refreshIfExpired()
+//                credentials.accessToken.tokenValue
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//                ""
+//            }
+//        }
+//
+//    }
 }

@@ -23,7 +23,7 @@ class GloveSensorsViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    var flexResistance by mutableStateOf(IntArray(5))
+    var flexResistance by mutableStateOf(IntArray(11))
         private set
 
     private val maxSize = 10

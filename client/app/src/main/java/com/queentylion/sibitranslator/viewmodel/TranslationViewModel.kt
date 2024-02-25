@@ -16,8 +16,25 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.gson.Gson
-import com.queentylion.sibitranslator.data.gesture.PostData
 import com.queentylion.sibitranslator.types.Translation
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.queentylion.sibitranslator.Resource
+import com.queentylion.sibitranslator.data.gesture.ApiService
+import com.queentylion.sibitranslator.data.gesture.PostData
+import com.queentylion.sibitranslator.data.gesture.ResponseData
+import com.queentylion.sibitranslator.domain.model.ExportModel
+import com.queentylion.sibitranslator.domain.repository.ExportRepository
+import com.queentylion.sibitranslator.presentation.state.FileExportState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Inject
+import kotlin.random.Random
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
@@ -26,7 +43,9 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
-class TranslationViewModel(
+@HiltViewModel
+class TranslationViewModel @Inject constructor(
+    private val exportRepository: ExportRepository
 ) : ViewModel() {
 
     private val databaseReference: DatabaseReference = Firebase
@@ -72,7 +91,7 @@ class TranslationViewModel(
 //
 //        return retrofit.create(ApiService::class.java)
 //    }
-
+//
 //    private suspend fun performPostRequest(
 //        apiService: ApiService,
 //        value1: IntArray,
@@ -86,43 +105,70 @@ class TranslationViewModel(
 //            // Handle network or other exceptions
 //        }
 //    }
+
     var currentSentence by mutableStateOf<MutableList<String?>>(mutableListOf())
         private set
 
     var isStreamingGesture = false
 
+    private val maxSize = 30
+
+    val dynamicArrayOfFlex: MutableList<Map<String, Int>> = mutableListOf()
+
+
     fun beginStreamingGesture(
         data : IntArray,
-        accessToken: String
     ) {
-        currentSentence.clear()
-        isStreamingGesture = !isStreamingGesture
+//        isStreamingGesture = !isStreamingGesture
+//        dynamicArrayOfFlex.clear()
 
         viewModelScope.launch {
-            while (isStreamingGesture) {
-                delay(1800)
+//            while (isStreamingGesture) {
+//                delay(70)
                 // Your POST request logic here
-                val postData = PostData(
-                    listOf(data.toList())
-                )
-                executePostRequest("267809006279","3932073483252531200", accessToken , postData)
+                if (dynamicArrayOfFlex.size == 30 ) {
+//                    val postData = PostData(
+//                        dynamicArrayOfFlex.toList()
+//                    )
+                    executePostRequest( dynamicArrayOfFlex.toList())
+                    dynamicArrayOfFlex.clear()
+                } else if (dynamicArrayOfFlex.size < 30) {
+                    val map = mutableMapOf<String, Int>()
+                    data.forEachIndexed { index, value ->
+                        map[index.toString()] = value
+                    }
+                    dynamicArrayOfFlex.add(map)
+                }
                 // Delay for 3 seconds
-            }
+//            }
         }
+//        generateExportFile()
+
+//        viewModelScope.launch {
+//            while (isStreamingGesture) {
+//                generateExportFile()
+//                delay(40000)
+//            }
+//        }
+
     }
 
-
-    fun executePostRequest(projectID: String, endpointID: String, accessToken: String, postData: PostData): List<String> {
-        val url = "https://asia-southeast2-aiplatform.googleapis.com/v1/projects/$projectID/locations/asia-southeast2/endpoints/$endpointID:predict"
+    fun executePostRequest(postData: List<Map<String, Int>>) {
+        val url = "http://194.61.28.18/csv/save-to-excel"
 
         val mediaType = "application/json".toMediaType()
 
         val gson = Gson()
         val requestBody = gson.toJson(postData).toRequestBody(mediaType)
+        // Convert requestBody to a String
+        val requestBodyString = gson.toJson(postData)
+
+        // Log the request body
+        Log.d("Request", requestBodyString)
+
 
         val request = Request.Builder()
             .url(url)
-            .addHeader("Authorization", "Bearer $accessToken")
             .post(requestBody)
             .build()
 
@@ -130,38 +176,22 @@ class TranslationViewModel(
         val thread = Thread {
             try {
                 val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val responseBody = response.body?.string()
-                    val predictions = parsePredictions(responseBody)
-                    currentSentence.add(predictions[0])
+                val responseBody = response.body?.string()
+                Log.d("Response", responseBody ?: "Response body is null")
 //                    return@Thread predictions
-                }
             } catch (e:Exception) {
                 e.printStackTrace()
             }
         }
         thread.start()
-        return listOf()
-    }
 
-    fun parsePredictions(responseBody: String?): List<String> {
-        val predictionsList = mutableListOf<String>()
-
-        responseBody?.let {
-            try {
-                val jsonObject = JSONObject(it)
-                val predictionsArray = jsonObject.getJSONArray("predictions")
-
-                for (i in 0 until predictionsArray.length()) {
-                    val prediction = predictionsArray.getString(i)
-                    predictionsList.add(prediction)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        return predictionsList
+//        viewModelScope.launch {
+//            try {
+//                val response = client.newCall(request).execute()
+//            } catch (e:Exception) {
+//                e.printStackTrace()
+//            }
+//        }
     }
 
     fun endStreamingGesture(){
@@ -170,6 +200,231 @@ class TranslationViewModel(
 
     fun getSentencesString(): String {
         return currentSentence.joinToString(separator = " ")
+    }
+
+    // EXPORT CSV
+
+    private var collectingJob: Job? = null
+
+    private var exportList = mutableListOf<ExportModel>()
+
+    var collectedDataAmount by mutableStateOf(0)
+        private set
+
+    var fileExportState by mutableStateOf(FileExportState())
+        private set
+
+    init {
+        collectingJob = viewModelScope.launch {
+            while (true){
+                delay(4000)
+                collectedDataAmount += 160
+                exportList.addAll(
+                    listOf(
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                        ExportModel(Random.nextFloat()*10000,System.currentTimeMillis()),
+                    )
+                )
+            }
+        }
+    }
+
+    fun generateExportFile(){
+        collectingJob?.cancel()
+        fileExportState = fileExportState.copy(isGeneratingLoading = true)
+        exportRepository.startExportData(
+            exportList.toList()
+        ).onEach { pathInfo ->
+            when(pathInfo){
+                is Resource.Success -> {
+                    fileExportState = fileExportState.copy(
+                        isSharedDataReady = true,
+                        isGeneratingLoading = false,
+                        shareDataUri = pathInfo.data.path,
+                        generatingProgress = 100
+                    )
+                }
+                is Resource.Loading ->{
+                    pathInfo.data?.let {
+                        fileExportState = fileExportState.copy(
+                            generatingProgress = pathInfo.data.progressPercentage
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    fileExportState = fileExportState.copy(
+                        failedGenerating = true,
+                        isGeneratingLoading = false
+                    )
+                }
+            }
+        }.launchIn(viewModelScope)
+    }
+
+    fun onShareDataClick(){
+        fileExportState = fileExportState.copy(isShareDataClicked = true)
+    }
+
+    fun onShareDataOpen(){
+        fileExportState = fileExportState.copy(isShareDataClicked = false)
     }
 
 

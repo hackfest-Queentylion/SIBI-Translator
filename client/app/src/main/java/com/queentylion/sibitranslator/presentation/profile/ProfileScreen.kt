@@ -148,14 +148,12 @@ fun ProfileScreen(
             }
 
             Box(
-//                modifier = Modifier
-//                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ){
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .aspectRatio(1f)
+                        .fillMaxWidth(0.7f)
+                        .fillMaxHeight(0.65f)
                         .border(
                             BorderStroke(
                                 5.dp, Color(0xFFc69f68)
@@ -211,7 +209,6 @@ fun ProfileScreen(
                         }
                     }else if(bleConnectionState == ConnectionState.Connected){
                         Column(
-                            modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ){
@@ -237,6 +234,36 @@ fun ProfileScreen(
                             )
                             Text(
                                 text = "Finger 5: ${viewModel.flexResistance[4]}",
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
+                            )
+                            Text(
+                                text = "Gyro 1: ${viewModel.flexResistance[5]}",
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
+                            )
+                            Text(
+                                text = "Gyro 2: ${viewModel.flexResistance[6]}",
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
+                            )
+                            Text(
+                                text = "Gyro 3: ${viewModel.flexResistance[7]}",
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
+                            )
+                            Text(
+                                text = "Accel 1: ${viewModel.flexResistance[8]}",
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
+                            )
+                            Text(
+                                text = "Accel 2: ${viewModel.flexResistance[9]}",
+                                style = MaterialTheme.typography.h6,
+                                color = Color(0xFFc69f68)
+                            )
+                            Text(
+                                text = "Accel 3: ${viewModel.flexResistance[10]}",
                                 style = MaterialTheme.typography.h6,
                                 color = Color(0xFFc69f68)
                             )

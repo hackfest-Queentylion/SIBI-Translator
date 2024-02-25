@@ -7,6 +7,7 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBarDefaults
@@ -70,6 +72,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.firebase.database.DatabaseReference
@@ -87,9 +91,11 @@ import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Translator(
     modifier: Modifier = Modifier,
@@ -104,7 +110,7 @@ fun Translator(
     onFavorites: () -> Unit,
     onSpeakerClick: (String) -> Unit,
     onProfile: () -> Unit,
-    viewModelTranslation: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    viewModelTranslation: TranslationViewModel = hiltViewModel(),
 ) {
     val gloveViewModel: GloveSensorsViewModel =
         hiltViewModel(LocalContext.current as ComponentActivity)
@@ -135,6 +141,8 @@ fun Translator(
     }
 
     val context = LocalContext.current
+
+    val fileExportState = viewModelTranslation.fileExportState
 
 
     val recognitionListener = object : RecognitionListener {
@@ -190,9 +198,28 @@ fun Translator(
         override fun onEvent(eventType: Int, params: Bundle?) {}
     }
 
-    LaunchedEffect(selectedLanguage) {
-        if (selectedLanguage == "Gesture") {
-            accessToken = googleAuthController.getAccessToken()
+//    LaunchedEffect(selectedLanguage) {
+    LaunchedEffect(key1 = fileExportState) {
+//        if (selectedLanguage == "Gesture") {
+        accessToken = "memek"
+//        }
+
+        if(fileExportState.isShareDataClicked){
+            val uri = FileProvider.getUriForFile(
+                context,
+                context.applicationContext.packageName+".provider",
+                File(fileExportState.shareDataUri!!)
+            )
+            val intent = Intent(Intent.ACTION_SEND)
+            intent.type = "text/csv"
+            intent.putExtra(Intent.EXTRA_SUBJECT,"My Export Data")
+            intent.putExtra(Intent.EXTRA_STREAM,uri)
+
+            val chooser = Intent.createChooser(intent,"Share With")
+            ContextCompat.startActivity(
+                context,chooser,null
+            )
+            viewModelTranslation.onShareDataOpen()
         }
     }
 
@@ -263,6 +290,30 @@ fun Translator(
                 text = if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString(),
                 modifier = Modifier.padding(top = 20.dp)
             )
+            Text(
+                "Collected data amount: ${viewModelTranslation.dynamicArrayOfFlex.size}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+//            Column {
+//                AnimatedVisibility(visible = fileExportState.isSharedDataReady) {
+//                    IconButton(
+//                        onClick = {
+//                            viewModelTranslation.onShareDataClick()
+//                        }
+//                    ){
+//                        Icon(
+//                            painterResource(id = R.drawable.ic_switch),
+//                            contentDescription = "export",
+//                            tint = Color.Red,
+//                            modifier = Modifier
+//                                .size(120.dp)
+//                        )
+//                    }
+//                }
+//            }
         }
         Column(
             modifier = Modifier
@@ -281,9 +332,10 @@ fun Translator(
                 ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
                     selectedLanguage = newText
                     if (userData != null) {
-                        val googleAuthController = GoogleAuthController()
+//                        val googleAuthController = GoogleAuthController()
                         coroutineScope.launch {
-                            userData.accessToken = googleAuthController.getAccessToken()
+//                            userData.accessToken = googleAuthController.getAccessToken()
+                            userData.accessToken = "memek"
                         }
 
                     }
@@ -316,19 +368,21 @@ fun Translator(
                     shape = CircleShape,
                     modifier = Modifier
                         .size(80.dp),
+                    enabled = !fileExportState.isSharedDataReady,
                     onClick = {
                         if (selectedLanguage == "Gesture") {
                             isHandSigning = !isHandSigning
                             if (isHandSigning) {
                                 // Make sure connected to glove ble gimana
                                 if(gloveViewModel.connectionState == ConnectionState.Connected){
-
-                                    if (userData != null) {
-                                        userData.accessToken?.let {
-                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
-                                                it
-                                            )
+                                    coroutineScope.launch{
+                                        for (i in 1..31) {
+                                            delay(80)
+                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.flexResistance)
                                         }
+                                        viewModelTranslation.dynamicArrayOfFlex.clear()
+                                        isHandSigning = false
+                                        Toast.makeText(context, "Done capturing", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
                                     isHandSigning = false
@@ -380,6 +434,29 @@ fun Translator(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+        }
+    }
+
+    if (fileExportState.isGeneratingLoading){
+        Dialog(
+            onDismissRequest = {}
+        ){
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(15.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ){
+                CircularProgressIndicator(
+                    color = Color.Gray
+                )
+                Text(
+                    "Generating File (${fileExportState.generatingProgress}%) ...",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }

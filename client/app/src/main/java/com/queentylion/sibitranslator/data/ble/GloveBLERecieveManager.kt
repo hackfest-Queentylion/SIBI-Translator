@@ -13,11 +13,9 @@ import com.queentylion.sibitranslator.data.GloveResult
 import com.queentylion.sibitranslator.util.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import java.util.*
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 
@@ -32,17 +30,30 @@ class GloveBLERecieveManager @Inject constructor(
     private val GLOVE_FLEX_SERVICE_UUID = "05f2f637-4809-4623-acbe-e2f2114ad9fe"
 
     private val P0_CHARACTERISTICS_UUID = "870542dd-02a1-45f7-89f4-f56bbd9dc31c"
-    private val P1_CHARACTERISTICS_UUID = "e961724a-234c-4686-a63c-d2f2ae498dad"
-    private val P2_CHARACTERISTICS_UUID = "cec35e6f-e94a-4992-a402-447cc682544d"
-    private val P3_CHARACTERISTICS_UUID = "5664c1bd-03f9-4c03-a5fc-6e026cacbe0e"
-    private val P4_CHARACTERISTICS_UUID = "4e2ffd1b-682c-4216-8b9a-726e797bf50a"
+//    private val P1_CHARACTERISTICS_UUID = "870542dd-02a1-45f7-89f4-f56bbd9dc31d"
+//    private val P1_CHARACTERISTICS_UUID = "e961724a-234c-4686-a63c-d2f2ae498dad"
+//    private val P2_CHARACTERISTICS_UUID = "cec35e6f-e94a-4992-a402-447cc682544d"
+//    private val P3_CHARACTERISTICS_UUID = "5664c1bd-03f9-4c03-a5fc-6e026cacbe0e"
+//    private val P4_CHARACTERISTICS_UUID = "4e2ffd1b-682c-4216-8b9a-726e797bf50a"
+//    private val P5_CHARACTERISTICS_UUID = "5ac6d2b9-5c97-45db-8040-f77cf18050da"
+//    private val P6_CHARACTERISTICS_UUID = "2f4a4cb7-679c-4c60-8d7d-3b7af72a62ba"
+//    private val P7_CHARACTERISTICS_UUID = "7ce41437-b46a-4eb0-84d8-bffcfc3f5955"
+//    private val P8_CHARACTERISTICS_UUID = "b9023453-f7ec-4639-a141-07207c011110"
+//    private val P9_CHARACTERISTICS_UUID = "ac453240-1099-4057-86b1-a0faf7cdc9c2"
+//    private val P10_CHARACTERISTICS_UUID = "b6783206-73f3-4527-b3d7-47e6f5beb75e"
 
     private var characteristicsUuidArray = arrayListOf(
         P0_CHARACTERISTICS_UUID,
-        P1_CHARACTERISTICS_UUID,
-        P2_CHARACTERISTICS_UUID,
-        P3_CHARACTERISTICS_UUID,
-        P4_CHARACTERISTICS_UUID,
+//        P1_CHARACTERISTICS_UUID,
+//        P2_CHARACTERISTICS_UUID,
+//        P3_CHARACTERISTICS_UUID,
+//        P4_CHARACTERISTICS_UUID,
+//        P5_CHARACTERISTICS_UUID,
+//        P6_CHARACTERISTICS_UUID,
+//        P7_CHARACTERISTICS_UUID,
+//        P8_CHARACTERISTICS_UUID,
+//        P9_CHARACTERISTICS_UUID,
+//        P10_CHARACTERISTICS_UUID,
     )
 
     override val data: MutableSharedFlow<Resource<GloveResult>> = MutableSharedFlow()
@@ -91,7 +102,7 @@ class GloveBLERecieveManager @Inject constructor(
                     this@GloveBLERecieveManager.gatt = gatt
                 } else if(newState == BluetoothProfile.STATE_DISCONNECTED){
                     coroutineScope.launch {
-                        data.emit(Resource.Success(data = GloveResult(IntArray(5),ConnectionState.Disconnected)))
+                        data.emit(Resource.Success(data = GloveResult(IntArray(11),ConnectionState.Disconnected)))
                     }
                     gatt.close()
                 }
@@ -131,42 +142,71 @@ class GloveBLERecieveManager @Inject constructor(
 
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
         ) {
             val characteristicUuids = listOf(
                 UUID.fromString(P0_CHARACTERISTICS_UUID),
-                UUID.fromString(P1_CHARACTERISTICS_UUID),
-                UUID.fromString(P2_CHARACTERISTICS_UUID),
-                UUID.fromString(P3_CHARACTERISTICS_UUID),
-                UUID.fromString(P4_CHARACTERISTICS_UUID)
+//                UUID.fromString(P1_CHARACTERISTICS_UUID)
+//                UUID.fromString(P2_CHARACTERISTICS_UUID),
+//                UUID.fromString(P3_CHARACTERISTICS_UUID),
+//                UUID.fromString(P4_CHARACTERISTICS_UUID),
+//                UUID.fromString(P5_CHARACTERISTICS_UUID),
+//                UUID.fromString(P6_CHARACTERISTICS_UUID),
+//                UUID.fromString(P7_CHARACTERISTICS_UUID),
+//                UUID.fromString(P8_CHARACTERISTICS_UUID),
+//                UUID.fromString(P9_CHARACTERISTICS_UUID),
+//                UUID.fromString(P10_CHARACTERISTICS_UUID)
             )
 
             val index = characteristicUuids.indexOf(characteristic.uuid)
             if (index != -1) {
                 // Assume each characteristic only contains a single integer value for this example.
-                var value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0)
-                var value4 = 0
-                // If the characteristic is part of our list, we process it.
-                var tempHumidityResult = GloveResult(
+//                var value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0)
+//                var value4 = 0
+//                // If the characteristic is part of our list, we process it.
+//                var tempHumidityResult = GloveResult(
+//                    // Replace with actual logic to create an IntArray from characteristic values.
+//                    IntArray(5).apply {
+//                        this[index] = value
+//                    },
+//                    ConnectionState.Connected
+//                )
+                val arrayLen = value.size/4;
+
+                val resultArray = IntArray(arrayLen)
+
+                for (i in 0 until arrayLen) {
+                    // Calculate the starting index of each group of 4 bytes
+                    val startIndex = i * 4
+                    // Extract the four consecutive bytes and convert them to an integer
+                    val intValue = value[startIndex].toInt() and 0xFF or
+                            (value[startIndex + 1].toInt() and 0xFF shl 8) or
+                            (value[startIndex + 2].toInt() and 0xFF shl 16) or
+                            (value[startIndex + 3].toInt() shl 24)
+
+                    // Store the integer value in the result array
+                    resultArray[i] = intValue
+                }
+
+                val tempHumidityResult = GloveResult(
                     // Replace with actual logic to create an IntArray from characteristic values.
-                    IntArray(5).apply {
-                        this[index] = value
-                    },
+                    resultArray,
                     ConnectionState.Connected
                 )
 
-                if(index == 3) {
-                    value4 = value / 10000
-                    value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0) - value4 * 10000
-                    tempHumidityResult = GloveResult(
-                        IntArray(5).apply {
-                            this[3] = value;
-                            this[4] = value4
-                        },
-                        ConnectionState.Connected
-                    )
-
-                }
+//                if(index == 3) {
+//                    value4 = value / 10000
+//                    value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0) - value4 * 10000
+//                    tempHumidityResult = GloveResult(
+//                        IntArray(5).apply {
+//                            this[3] = value;
+//                            this[4] = value4
+//                        },
+//                        ConnectionState.Connected
+//                    )
+//
+//                }
 
                 coroutineScope.launch {
                     data.emit(
@@ -192,23 +232,26 @@ class GloveBLERecieveManager @Inject constructor(
 
     private fun enableNotification(gatt: BluetoothGatt){
         val cccdUuid = UUID.fromString(CCCD_DESCRIPTOR_UUID)
-        val payload = when {
-            true -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-            true-> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-            else -> return
-        }
-
-//        if(characteristicsUuidArray.size == 1) {
-//            TimeUnit.SECONDS.sleep(5)
+        val payload = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+//        val payload = when {
+//            true -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+//            true-> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+//            else -> return
 //        }
 
         if(characteristicsUuidArray.size == 0) {
             characteristicsUuidArray = arrayListOf(
-                P3_CHARACTERISTICS_UUID,
                 P0_CHARACTERISTICS_UUID,
-                P1_CHARACTERISTICS_UUID,
-                P2_CHARACTERISTICS_UUID,
-                P4_CHARACTERISTICS_UUID
+//                P1_CHARACTERISTICS_UUID
+//                P2_CHARACTERISTICS_UUID,
+//                P3_CHARACTERISTICS_UUID,
+//                P4_CHARACTERISTICS_UUID,
+//                P5_CHARACTERISTICS_UUID,
+//                P6_CHARACTERISTICS_UUID,
+//                P7_CHARACTERISTICS_UUID,
+//                P8_CHARACTERISTICS_UUID,
+//                P9_CHARACTERISTICS_UUID,
+//                P10_CHARACTERISTICS_UUID
             )
 //            if(gatt.services)
 
@@ -224,7 +267,7 @@ class GloveBLERecieveManager @Inject constructor(
         };
 
         characteristic?.getDescriptor(cccdUuid)?.let { cccdDescriptor ->
-            if(gatt?.setCharacteristicNotification(characteristic, true) == false){
+            if(!gatt.setCharacteristicNotification(characteristic, true)){
                 Log.d("BLEReceiveManager","set characteristics notification failed")
                 return
             }
@@ -275,10 +318,16 @@ class GloveBLERecieveManager @Inject constructor(
             // List of characteristic UUIDs
             val characteristicsUuids = listOf(
                 UUID.fromString(P0_CHARACTERISTICS_UUID),
-                UUID.fromString(P1_CHARACTERISTICS_UUID),
-                UUID.fromString(P2_CHARACTERISTICS_UUID),
-                UUID.fromString(P3_CHARACTERISTICS_UUID),
-                UUID.fromString(P4_CHARACTERISTICS_UUID)
+//                UUID.fromString(P1_CHARACTERISTICS_UUID)
+//                UUID.fromString(P2_CHARACTERISTICS_UUID),
+//                UUID.fromString(P3_CHARACTERISTICS_UUID),
+//                UUID.fromString(P4_CHARACTERISTICS_UUID),
+//                UUID.fromString(P5_CHARACTERISTICS_UUID),
+//                UUID.fromString(P6_CHARACTERISTICS_UUID),
+//                UUID.fromString(P7_CHARACTERISTICS_UUID),
+//                UUID.fromString(P8_CHARACTERISTICS_UUID),
+//                UUID.fromString(P9_CHARACTERISTICS_UUID),
+//                UUID.fromString(P10_CHARACTERISTICS_UUID)
             )
 
             // Iterate through each characteristic UUID and disable notifications
