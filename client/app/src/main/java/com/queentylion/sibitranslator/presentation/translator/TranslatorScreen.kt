@@ -111,7 +111,6 @@ fun Translator(
     var selectedLanguage by rememberSaveable {
         mutableStateOf("Speech")
     }
-
     var isRecording by rememberSaveable {
         mutableStateOf(false)
     }
@@ -206,6 +205,7 @@ fun Translator(
         }
     }
 
+    // UI Starts here
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
