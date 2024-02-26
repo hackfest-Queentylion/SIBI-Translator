@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SIBI Translator</string>
+    <string name="app_name">Gestra</string>
     <string name="web_client_id">901798999714-e0bc8s2tn6ebckj9e3e7a7s0m57jkmeb.apps.googleusercontent.com</string>
     <string name="endpoint_id">3932073483252531200</string>
     <string name="project_id">267809006279</string>
