@@ -18,12 +18,16 @@ import com.google.firebase.ktx.Firebase
 import com.queentylion.sibitranslator.types.Translation
 import kotlinx.coroutines.launch
 import com.queentylion.sibitranslator.SignDetectionService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.withContext
 
 
 class TranslationViewModel(
 ) : ViewModel() {
+
+
 
     private val databaseReference: DatabaseReference = Firebase
         .database("https://sibi-translator-default-rtdb.asia-southeast1.firebasedatabase.app/")
@@ -33,7 +37,7 @@ class TranslationViewModel(
     private val _translations = MutableLiveData<List<Translation>>()
     val translations: LiveData<List<Translation>> = _translations
 
-    val detectionService = SignDetectionService()
+    private val detectionService = SignDetectionService()
 
     init {
         if (userId != null) {
@@ -80,7 +84,20 @@ class TranslationViewModel(
                     intArray.toList()
                 }
 
-                resultChannel.send(detectionService.transfer(listOfLists))
+                val predictionString = detectionService.transfer(listOfLists)
+
+//                resultChannel.send(detectionService.transfer(listOfLists))
+                withContext(Dispatchers.Main) {
+                    currentSentence.add(predictionString)
+                }
+//                val result = resultChannel.trySend(predictionString)
+//                if (result.isSuccess) {
+//                    // Value was sent successfully
+//                    println("Value sent successfully")
+//                } else {
+//                    // Sending failed
+//                    println("Failed to send value: ${result.exceptionOrNull()}")
+//                }
                 dynamicArrayOfFlex.clear()
             } else if (dynamicArrayOfFlex.size < 30) {
                 dynamicArrayOfFlex.add(data)
@@ -105,6 +122,10 @@ class TranslationViewModel(
 
     fun getSentencesString(): String {
         return currentSentence.joinToString(separator = " ")
+    }
+
+    fun clearSentences() {
+        currentSentence.clear()
     }
 
 

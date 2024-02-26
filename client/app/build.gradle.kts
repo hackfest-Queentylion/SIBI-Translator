@@ -131,6 +131,7 @@ dependencies {
     implementation("com.google.firebase:firebase-ml-modeldownloader")
 
     // Also add the dependency for the TensorFlow Lite library and specify its version
-    implementation("org.tensorflow:tensorflow-lite:2.4.0")
+    implementation("org.tensorflow:tensorflow-lite:2.5.0")
+    implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.5.0")
 
 }

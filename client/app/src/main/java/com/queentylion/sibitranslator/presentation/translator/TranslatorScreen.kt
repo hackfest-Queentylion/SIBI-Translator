@@ -110,7 +110,7 @@ fun Translator(
     val gloveViewModel: GloveSensorsViewModel =
         hiltViewModel(LocalContext.current as ComponentActivity)
     var selectedLanguage by rememberSaveable {
-        mutableStateOf("Speech")
+        mutableStateOf("Gesture")
     }
     var isRecording by rememberSaveable {
         mutableStateOf(false)
@@ -126,7 +126,13 @@ fun Translator(
     val isPressed = interactionSource.collectIsPressedAsState().value
     val coroutineScope = rememberCoroutineScope()
 
-    var partialGestureResult by remember { mutableStateOf("") }
+    var partialGestureResult by rememberSaveable { mutableStateOf("") }
+
+    val updatedGestureResult by rememberUpdatedState(partialGestureResult)
+
+    fun updateGestureResult(res: String) {
+        partialGestureResult = res
+    }
 
     fun updateTranslatedText(newText: String) {
         translatedText = newText
@@ -239,7 +245,7 @@ fun Translator(
                     fontWeight = FontWeight.Normal
                 )
             }
-            androidx.compose.material3.IconButton(onClick = { onSpeakerClick(if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()) }) {
+            androidx.compose.material3.IconButton(onClick = { onSpeakerClick(if(selectedLanguage == "Speech") updatedTranslatedText else updatedGestureResult) }) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_volume),
                     contentDescription = "Start",
@@ -262,7 +268,7 @@ fun Translator(
             Text(
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = if(selectedLanguage == "Speech") updatedTranslatedText else partialGestureResult,
+                text = if(selectedLanguage == "Speech") updatedTranslatedText else updatedGestureResult,
                 modifier = Modifier.padding(top = 20.dp)
             )
         }
@@ -280,7 +286,7 @@ fun Translator(
                 modifier = Modifier.padding(top = 25.dp, bottom = 50.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
+                ExposedDropdownMenuBox(menuItem = arrayOf("Gesture", "Speech")) { newText ->
                     selectedLanguage = newText
 //                    if (userData != null) {
 //                        val googleAuthController = GoogleAuthController()
@@ -324,13 +330,15 @@ fun Translator(
                             if (isHandSigning) {
                                 // Make sure connected to glove ble gimana
                                 if(gloveViewModel.connectionState == ConnectionState.Connected){
+                                    viewModelTranslation.clearSentences()
                                     coroutineScope.launch{
                                         while(isHandSigning) {
-                                            repeat(30) {
+                                            repeat(31) {
                                                 delay(80)
                                                 viewModelTranslation.beginStreamingGesture(gloveViewModel.flexResistance)
                                             }
                                             viewModelTranslation.dynamicArrayOfFlex.clear()
+                                            updateGestureResult(viewModelTranslation.getSentencesString())
                                         }
                                     }
                                 } else {

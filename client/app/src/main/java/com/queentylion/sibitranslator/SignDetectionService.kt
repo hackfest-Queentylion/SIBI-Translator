@@ -76,27 +76,40 @@ class SignDetectionService(
     }
 
     fun transfer(gloveKeypoints: List<List<Int>>): String {
-        if (interpreterPredict == null) {
-            setupStyleTransfer()
-        }
+//        if (interpreterPredict == null) {
+//            setupStyleTransfer()
+//        }
 
         val inferenceTime = SystemClock.uptimeMillis()
 
+        // Flatten the glove keypoints and convert them to float
         val flatInputArray = gloveKeypoints.flatten().map { it.toFloat() }.toFloatArray()
 
-        val inputShape = intArrayOf(inputTransformTargetHeight, inputTransformTargetWidth)
-        val inputDataType = DataType.INT32
-        val inputTensorBuffer = TensorBuffer.createFixedSize(inputShape, inputDataType)
+        // Ensure the size of the flatInputArray matches the expected shape
+        val expectedInputSize = inputPredictTargetHeight * inputPredictTargetWidth
+        if (flatInputArray.size != expectedInputSize) {
+            error("Size of input array (${flatInputArray.size}) does not match the expected shape ($inputTransformTargetHeight x $inputTransformTargetWidth)")
+        }
 
-        inputTensorBuffer.loadArray(flatInputArray)
+        // Reshape the input array to match the expected input shape
+        val reshapedInputArray = flatInputArray.copyOf()
 
+        // Create TensorBuffer from the reshaped input array
+        val inputDataType = DataType.FLOAT32
+        val inputTensorBuffer = TensorBuffer.createFixedSize(intArrayOf(inputPredictTargetHeight, inputPredictTargetWidth), inputDataType)
+        inputTensorBuffer.loadArray(reshapedInputArray)
+
+        // Create TensorBuffer for the output
         val predictOutput = TensorBuffer.createFixedSize(outputPredictShape, DataType.FLOAT32)
 
+        // Run inference
         interpreterPredict?.run(inputTensorBuffer.buffer, predictOutput.buffer)
 
-//        return outputBitmap to SystemClock.uptimeMillis() - inferenceTime
+        // Return the predicted label
         return getOutputString(predictOutput)
     }
+
+
 
     fun clearStyleTransferUtil() {
         interpreterPredict = null
