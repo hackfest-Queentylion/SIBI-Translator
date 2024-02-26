@@ -319,16 +319,16 @@ class MainActivity : ComponentActivity() {
                                             navController.navigate("profile")
                                         }
                                     },
-                                    onHistory = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("history")
-                                        }
-                                    },
-                                    onFavorites = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("favorite")
-                                        }
-                                    },
+//                                    onHistory = {
+//                                        lifecycleScope.launch {
+//                                            navController.navigate("history")
+//                                        }
+//                                    },
+//                                    onFavorites = {
+//                                        lifecycleScope.launch {
+//                                            navController.navigate("favorite")
+//                                        }
+//                                    },
                                     onSpeakerClick = { text ->
                                         speakOut(text)
                                     }
