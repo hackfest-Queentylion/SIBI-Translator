@@ -56,6 +56,7 @@ import com.queentylion.sibitranslator.presentation.sign_in.UserData
 import com.queentylion.sibitranslator.util.GoogleAuthController
 import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -288,14 +289,13 @@ fun Conversation(
                         speechRecognizer?.startListening(recognizerIntent)
                         isHandSigning = true  // Activate gesture input
                         if (gloveViewModel.connectionState == ConnectionState.Connected) {
-                            coroutineScope.launch {
-                                userData?.accessToken?.let {
-                                    viewModelTranslation.beginStreamingGesture(
-                                        gloveViewModel.calculateMeanFlex(
-                                            gloveViewModel.dynamicArrayOfFlex
-                                        ),
-                                        it
-                                    )
+                            coroutineScope.launch{
+                                while(isHandSigning) {
+                                    repeat(30) {
+                                        delay(80)
+                                        viewModelTranslation.beginStreamingGesture(gloveViewModel.flexResistance)
+                                    }
+                                    viewModelTranslation.dynamicArrayOfFlex.clear()
                                 }
                             }
                         } else {

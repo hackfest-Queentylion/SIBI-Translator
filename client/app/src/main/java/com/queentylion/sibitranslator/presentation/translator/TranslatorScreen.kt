@@ -126,9 +126,7 @@ fun Translator(
     val isPressed = interactionSource.collectIsPressedAsState().value
     val coroutineScope = rememberCoroutineScope()
 
-    var accessToken by rememberSaveable {
-        mutableStateOf("")
-    }
+    var partialGestureResult by remember { mutableStateOf("") }
 
     fun updateTranslatedText(newText: String) {
         translatedText = newText
@@ -194,6 +192,9 @@ fun Translator(
 //        if (selectedLanguage == "Gesture") {
 //            accessToken = googleAuthController.getAccessToken()
 //        }
+        coroutineScope.launch {
+            partialGestureResult = viewModelTranslation.collectPartialResults()
+        }
     }
 
     DisposableEffect(Unit) {
@@ -261,7 +262,7 @@ fun Translator(
             Text(
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString(),
+                text = if(selectedLanguage == "Speech") updatedTranslatedText else partialGestureResult,
                 modifier = Modifier.padding(top = 20.dp)
             )
         }
@@ -323,18 +324,13 @@ fun Translator(
                             if (isHandSigning) {
                                 // Make sure connected to glove ble gimana
                                 if(gloveViewModel.connectionState == ConnectionState.Connected){
-
-//                                    if (userData != null) {
-//                                        userData.accessToken?.let {
-//                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
-//                                                it
-//                                            )
-//                                        }
-//                                    }
                                     coroutineScope.launch{
-                                        repeat(30) {
-                                            delay(80)
-                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.flexResistance,"memek bau")
+                                        while(isHandSigning) {
+                                            repeat(30) {
+                                                delay(80)
+                                                viewModelTranslation.beginStreamingGesture(gloveViewModel.flexResistance)
+                                            }
+                                            viewModelTranslation.dynamicArrayOfFlex.clear()
                                         }
                                     }
                                 } else {
