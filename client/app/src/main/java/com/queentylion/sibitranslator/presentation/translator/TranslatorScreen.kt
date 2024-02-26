@@ -86,6 +86,7 @@ import com.queentylion.sibitranslator.util.Resource
 import com.queentylion.sibitranslator.viewmodel.TranslationViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 
@@ -190,9 +191,9 @@ fun Translator(
     }
 
     LaunchedEffect(selectedLanguage) {
-        if (selectedLanguage == "Gesture") {
-            accessToken = googleAuthController.getAccessToken()
-        }
+//        if (selectedLanguage == "Gesture") {
+//            accessToken = googleAuthController.getAccessToken()
+//        }
     }
 
     DisposableEffect(Unit) {
@@ -280,13 +281,13 @@ fun Translator(
             ) {
                 ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
                     selectedLanguage = newText
-                    if (userData != null) {
-                        val googleAuthController = GoogleAuthController()
-                        coroutineScope.launch {
-                            userData.accessToken = googleAuthController.getAccessToken()
-                        }
-
-                    }
+//                    if (userData != null) {
+//                        val googleAuthController = GoogleAuthController()
+//                        coroutineScope.launch {
+//                            userData.accessToken = googleAuthController.getAccessToken()
+//                        }
+//
+//                    }
                 }
                 Icon(
                     imageVector = Icons.Filled.ArrowForward,
@@ -323,11 +324,17 @@ fun Translator(
                                 // Make sure connected to glove ble gimana
                                 if(gloveViewModel.connectionState == ConnectionState.Connected){
 
-                                    if (userData != null) {
-                                        userData.accessToken?.let {
-                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
-                                                it
-                                            )
+//                                    if (userData != null) {
+//                                        userData.accessToken?.let {
+//                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
+//                                                it
+//                                            )
+//                                        }
+//                                    }
+                                    coroutineScope.launch{
+                                        repeat(30) {
+                                            delay(80)
+                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.flexResistance,"memek bau")
                                         }
                                     }
                                 } else {

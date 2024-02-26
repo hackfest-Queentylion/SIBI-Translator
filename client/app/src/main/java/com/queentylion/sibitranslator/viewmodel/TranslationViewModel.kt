@@ -91,6 +91,8 @@ class TranslationViewModel(
 
     var isStreamingGesture = false
 
+    val dynamicArrayOfFlex: List<Int<Int>>
+
     fun beginStreamingGesture(
         data : IntArray,
         accessToken: String
