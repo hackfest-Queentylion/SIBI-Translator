@@ -57,6 +57,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.database
 import com.queentylion.sibitranslator.database.UsersRepository
+import com.queentylion.sibitranslator.presentation.conversation.Conversation
 import com.queentylion.sibitranslator.presentation.favorites.FavoritesScreen
 import com.queentylion.sibitranslator.presentation.history.HistoryScreen
 import com.queentylion.sibitranslator.presentation.profile.ProfileScreen
@@ -257,38 +258,38 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("profile_connected") {
-                                ProfileScreen(
-                                    userData = googleAuthUiClient.getSignedInUser(),
-                                    onSignOut = {
-                                        lifecycleScope.launch {
-                                            googleAuthUiClient.signOut()
-                                            Toast.makeText(
-                                                applicationContext,
-                                                "Signed out",
-                                                Toast.LENGTH_LONG
-                                            ).show()
+                            ProfileScreen(
+                                userData = googleAuthUiClient.getSignedInUser(),
+                                onSignOut = {
+                                    lifecycleScope.launch {
+                                        googleAuthUiClient.signOut()
+                                        Toast.makeText(
+                                            applicationContext,
+                                            "Signed out",
+                                            Toast.LENGTH_LONG
+                                        ).show()
 
-                                            navController.navigate("sign_in")
-                                        }
-                                    },
-                                    onTranslate = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("translator")
-                                        }
-                                    },
-                                    onBluetooth = {
-                                        lifecycleScope.launch {
-                                            navController.navigate("profile_connected")
-
-                                        }
-                                    },
-                                    isBluetoothConnected = true,
-                                    onBluetoothStateChanged = {
                                         navController.navigate("sign_in")
-                                        showBluetoothDialog()
+                                    }
+                                },
+                                onTranslate = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("translator")
+                                    }
+                                },
+                                onBluetooth = {
+                                    lifecycleScope.launch {
+                                        navController.navigate("profile_connected")
 
                                     }
-                                )
+                                },
+                                isBluetoothConnected = true,
+                                onBluetoothStateChanged = {
+                                    navController.navigate("sign_in")
+                                    showBluetoothDialog()
+
+                                }
+                            )
 
                         }
 
@@ -296,26 +297,31 @@ class MainActivity : ComponentActivity() {
                             textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
                         }
 
-                    composable(
-                        "translator?initialText={initialText}",
-                        arguments = listOf(navArgument("initialText") {
-                            defaultValue = "Say Something"
-                        })
-                    ) { backStackEntry ->
-                        backStackEntry.arguments?.getString("initialText")?.let {
-                            Translator(
-                                Modifier
-                                    .fillMaxSize(),
-                                onRequestPermission = { checkPermissionAndStart() },
-                                speechRecognizer = speechRecognizer,
-                                recognizerIntent = recognizerIntent,
-                                initialText = it,
-                                databaseReference = databaseReference,
-                                googleAuthController = googleAuthController,
-                                userData = googleAuthUiClient.getSignedInUser(),
-                                onHistory = {
-                                    lifecycleScope.launch {
-                                        navController.navigate("history")
+                        composable(
+                            "conversation?initialText={initialText}",
+                            arguments = listOf(navArgument("initialText") {
+                                defaultValue = "Speech"
+                            })
+                        ) { backStackEntry ->
+                            backStackEntry.arguments?.getString("initialText")?.let {
+                                Conversation(
+                                    Modifier
+                                        .fillMaxSize(),
+                                    onRequestPermission = { checkPermissionAndStart() },
+                                    speechRecognizer = speechRecognizer,
+                                    recognizerIntent = recognizerIntent,
+                                    initialText = it,
+                                    databaseReference = databaseReference,
+                                    googleAuthController = googleAuthController,
+                                    userData = googleAuthUiClient.getSignedInUser(),
+                                    onProfile = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("profile")
+                                        }
+                                    },
+                                    onHistory = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("history")
                                         }
                                     },
                                     onFavorites = {
@@ -323,9 +329,43 @@ class MainActivity : ComponentActivity() {
                                             navController.navigate("favorite")
                                         }
                                     },
+                                    onSpeakerClick = { text ->
+                                        speakOut(text)
+                                    }
+                                )
+                            }
+                        }
+
+                        composable(
+                            "translator?initialText={initialText}",
+                            arguments = listOf(navArgument("initialText") {
+                                defaultValue = "Say Something"
+                            })
+                        ) { backStackEntry ->
+                            backStackEntry.arguments?.getString("initialText")?.let {
+                                Translator(
+                                    Modifier
+                                        .fillMaxSize(),
+                                    onRequestPermission = { checkPermissionAndStart() },
+                                    speechRecognizer = speechRecognizer,
+                                    recognizerIntent = recognizerIntent,
+                                    initialText = it,
+                                    databaseReference = databaseReference,
+                                    googleAuthController = googleAuthController,
+                                    userData = googleAuthUiClient.getSignedInUser(),
                                     onProfile = {
                                         lifecycleScope.launch {
                                             navController.navigate("profile")
+                                        }
+                                    },
+                                    onHistory = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("history")
+                                        }
+                                    },
+                                    onFavorites = {
+                                        lifecycleScope.launch {
+                                            navController.navigate("conversation")
                                         }
                                     },
                                     onSpeakerClick = { text ->

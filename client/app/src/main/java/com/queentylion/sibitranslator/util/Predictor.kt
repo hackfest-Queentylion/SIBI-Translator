@@ -16,4 +16,4 @@ val options: Model.Options = if(compatList.isDelegateSupportedOnThisDevice) {
 }
 
 // Initialize the model as usual feeding in the options object
-val sibiModel = ModelSibi.newInstance(context, options)
+//val sibiModel = ModelSibi.newInstance(context, options)

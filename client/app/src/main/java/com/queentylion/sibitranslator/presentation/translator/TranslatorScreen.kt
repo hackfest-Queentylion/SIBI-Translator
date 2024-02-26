@@ -2,6 +2,8 @@ package com.queentylion.sibitranslator.presentation.translator
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.SpeechRecognizer
 import android.util.Log
@@ -152,9 +154,8 @@ fun Translator(
 
         override fun onEndOfSpeech() {}
         override fun onError(error: Int) {
+
             Log.e("Speech Recognition", "Error code: $error")
-            updateTranslatedText("Say something")
-            isRecording = false
         }
 
         override fun onResults(results: Bundle?) {
@@ -226,15 +227,10 @@ fun Translator(
             }
             Row {
                 Text(
-                    text = "SIBI ",
+                    text = "Gestra",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 2.dp),
-                )
-                Text(
-                    text = "Translator",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Normal
                 )
             }
             androidx.compose.material3.IconButton(onClick = { onSpeakerClick(if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString()) }) {
@@ -281,10 +277,10 @@ fun Translator(
                 ExposedDropdownMenuBox(menuItem = arrayOf("Speech", "Gesture")) { newText ->
                     selectedLanguage = newText
                     if (userData != null) {
-                        val googleAuthController = GoogleAuthController()
-                        coroutineScope.launch {
-                            userData.accessToken = googleAuthController.getAccessToken()
-                        }
+//                        val googleAuthController = GoogleAuthController()
+//                        coroutineScope.launch {
+//                            userData.accessToken = googleAuthController.getAccessToken()
+//                        }
 
                     }
                 }
@@ -307,7 +303,7 @@ fun Translator(
             ) {
                 androidx.compose.material3.IconButton(onClick = { onFavorites() }) {
                     Icon(
-                        imageVector = Icons.Filled.Favorite,
+                        painter = painterResource(id = R.drawable.baseline_interpreter_mode_24),
                         contentDescription = "Favorite Icon",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )

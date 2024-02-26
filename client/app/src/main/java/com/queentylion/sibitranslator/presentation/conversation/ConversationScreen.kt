@@ -2,6 +2,8 @@ package com.queentylion.sibitranslator.presentation.conversation
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.SpeechRecognizer
 import android.util.Log
@@ -24,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,6 +74,8 @@ fun Conversation(
     googleAuthController: GoogleAuthController,
     onSpeakerClick: (String) -> Unit,
     onProfile: () -> Unit,
+    onHistory: () -> Unit,
+    onFavorites: () -> Unit,
     viewModelTranslation: TranslationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
 ) {
 
@@ -109,11 +114,14 @@ fun Conversation(
 
     val recognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
-            updateTranslatedText("")
+            if (updatedTranslatedText == "Speech") {
+                updateTranslatedText("")
+            }
         }
 
         override fun onBeginningOfSpeech() {
             Log.d("Speech Recognition", "Speech started")
+            updateTranslatedText("")
         }
 
         override fun onRmsChanged(rmsdB: Float) {}
@@ -123,9 +131,19 @@ fun Conversation(
 
         override fun onEndOfSpeech() {}
         override fun onError(error: Int) {
-            Log.e("Speech Recognition", "Error code: $error")
-            updateTranslatedText("Say something")
-            isRecording = false
+            when (error) {
+                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        onRequestPermission()
+                        speechRecognizer?.startListening(recognizerIntent)
+                    }, 1000)
+                }
+                else -> {
+                    Log.e("Speech Recognition", "Error code: $error")
+                    updateTranslatedText("Speech")
+                    isRecording = false
+                }
+            }
         }
 
         override fun onResults(results: Bundle?) {
@@ -136,9 +154,11 @@ fun Conversation(
                 speechResult?.let {
                     Log.d("Speech Result", "Recognized speech: $speechResult")
                     updateTranslatedText(speechResult)
-                    isRecording = false
+//                    isRecording = false
                     val translationsRepository = TranslationsRepository(databaseReference)
                     translationsRepository.writeNewTranslations(userData?.userId, speechResult)
+                    onRequestPermission()
+                    speechRecognizer?.startListening(recognizerIntent)
                 }
             } catch (e: Exception) {
                 Log.e("Speech Result", "Error in onResults: ${e.message}")
@@ -196,15 +216,10 @@ fun Conversation(
             }
             Row {
                 Text(
-                    text = "SIBI ",
+                    text = "Gestra",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 2.dp),
-                )
-                Text(
-                    text = "Translator",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Normal
                 )
             }
             IconButton(onClick = {
@@ -242,9 +257,8 @@ fun Conversation(
                     modifier = Modifier
                         .padding(start = 15.dp, end = 15.dp, top = 5.dp),
                     style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-    //                text = if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString(),
-                    text = "Speech",
+                    color = if (updatedTranslatedText == "Speech") MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = updatedTranslatedText,
                 )
             }
             Box(
@@ -259,9 +273,8 @@ fun Conversation(
                     modifier = Modifier
                         .padding(start = 15.dp, end = 15.dp, top = 5.dp),
                     style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-    //                text = if(selectedLanguage == "Speech") updatedTranslatedText else viewModelTranslation.getSentencesString(),
-                    text = "Gesture",
+                    color = if (viewModelTranslation.getSentencesString() == "") MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = if (viewModelTranslation.getSentencesString() == "") "Gesture" else viewModelTranslation.getSentencesString(),
                 )
             }
         }
@@ -275,87 +288,109 @@ fun Conversation(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Button(
-                shape = CircleShape,
+            Row(
                 modifier = Modifier
-                    .size(80.dp),
-                onClick = {
-                    // Turn on both speech recognition and gesture input
-                    conversationStarting = !conversationStarting
-                    if (conversationStarting) {
-                        // TODO: This (I assume) is still really buggy -> debug it
-                        onRequestPermission()
-                        speechRecognizer?.startListening(recognizerIntent)
-                        isHandSigning = true  // Activate gesture input
-                        if (gloveViewModel.connectionState == ConnectionState.Connected) {
-                            coroutineScope.launch {
-                                userData?.accessToken?.let {
-                                    viewModelTranslation.beginStreamingGesture(
-                                        gloveViewModel.calculateMeanFlex(
-                                            gloveViewModel.dynamicArrayOfFlex
-                                        ),
-                                        it
-                                    )
+                    .fillMaxWidth()
+                    .padding(horizontal = 75.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                androidx.compose.material3.IconButton(onClick = { onFavorites() }) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Favorite Icon",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .size(80.dp),
+                    onClick = {
+                        // Turn on both speech recognition and gesture input
+                        conversationStarting = !conversationStarting
+                        if (conversationStarting) {
+                            // TODO: This (I assume) is still really buggy -> debug it
+                            onRequestPermission()
+                            speechRecognizer?.startListening(recognizerIntent)
+                            isHandSigning = true  // Activate gesture input
+                            if (gloveViewModel.connectionState == ConnectionState.Connected) {
+                                coroutineScope.launch {
+                                    userData?.accessToken?.let {
+                                        viewModelTranslation.beginStreamingGesture(
+                                            gloveViewModel.calculateMeanFlex(
+                                                gloveViewModel.dynamicArrayOfFlex
+                                            ),
+                                            it
+                                        )
+                                    }
                                 }
+                            } else {
+                                isHandSigning = false
+                                Toast
+                                    .makeText(
+                                        context,
+                                        "Please Connect To Glove",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show()
                             }
                         } else {
-                            isHandSigning = false
-                            Toast
-                                .makeText(
-                                    context,
-                                    "Please Connect To Glove",
-                                    Toast.LENGTH_SHORT
-                                )
-                                .show()
+                            // TODO: Start text to speech when gesturing is complete???
+                            speechRecognizer?.stopListening()
+                            viewModelTranslation.endStreamingGesture()
+                            onSpeakerClick(viewModelTranslation.getSentencesString())
+                            val translationsRepository = TranslationsRepository(databaseReference)
+                            translationsRepository.writeNewTranslations(userData?.userId, viewModelTranslation.getSentencesString())
                         }
-                    } else {
-                        // TODO: Start text to speech when gesturing is complete???
-                        speechRecognizer?.stopListening()
-                        viewModelTranslation.endStreamingGesture()
-                        onSpeakerClick(viewModelTranslation.getSentencesString())
-                        val translationsRepository = TranslationsRepository(databaseReference)
-                        translationsRepository.writeNewTranslations(userData?.userId, viewModelTranslation.getSentencesString())
-                    }
 
-//                        if (selectedLanguage == "Gesture") {
-//                            isHandSigning = !isHandSigning
-//                            if (isHandSigning) {
-//                                // Make sure connected to glove ble gimana
-//                                if(gloveViewModel.connectionState == ConnectionState.Connected){
-//
-//                                    if (userData != null) {
-//                                        userData.accessToken?.let {
-//                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
-//                                                it
-//                                            )
-//                                        }
-//                                    }
-//                                } else {
-//                                    isHandSigning = false
-//                                    Toast.makeText(context, "Please Connect To Glove", Toast.LENGTH_SHORT).show()
-//                                }
-//                            } else {
-//                                viewModelTranslation.endStreamingGesture()
-//                                onSpeakerClick(viewModelTranslation.getSentencesString())
-//                                val translationsRepository = TranslationsRepository(databaseReference)
-//                                translationsRepository.writeNewTranslations(userData?.userId, viewModelTranslation.getSentencesString())
-//                            }
-//                        } else {
-//                            isRecording = !isRecording
-//                            if (isRecording) {
-//                                onRequestPermission()
-//                                speechRecognizer?.startListening(recognizerIntent)
-//                            } else {
-//                                speechRecognizer?.stopListening()
-//                            }
-//                        }
+    //                        if (selectedLanguage == "Gesture") {
+    //                            isHandSigning = !isHandSigning
+    //                            if (isHandSigning) {
+    //                                // Make sure connected to glove ble gimana
+    //                                if(gloveViewModel.connectionState == ConnectionState.Connected){
+    //
+    //                                    if (userData != null) {
+    //                                        userData.accessToken?.let {
+    //                                            viewModelTranslation.beginStreamingGesture(gloveViewModel.calculateMeanFlex(gloveViewModel.dynamicArrayOfFlex),
+    //                                                it
+    //                                            )
+    //                                        }
+    //                                    }
+    //                                } else {
+    //                                    isHandSigning = false
+    //                                    Toast.makeText(context, "Please Connect To Glove", Toast.LENGTH_SHORT).show()
+    //                                }
+    //                            } else {
+    //                                viewModelTranslation.endStreamingGesture()
+    //                                onSpeakerClick(viewModelTranslation.getSentencesString())
+    //                                val translationsRepository = TranslationsRepository(databaseReference)
+    //                                translationsRepository.writeNewTranslations(userData?.userId, viewModelTranslation.getSentencesString())
+    //                            }
+    //                        } else {
+    //                            isRecording = !isRecording
+    //                            if (isRecording) {
+    //                                onRequestPermission()
+    //                                speechRecognizer?.startListening(recognizerIntent)
+    //                            } else {
+    //                                speechRecognizer?.stopListening()
+    //                            }
+    //                        }
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_interpreter_mode_24),
+                        contentDescription = "Favorite Icon",
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_interpreter_mode_24),
-                    contentDescription = "Favorite Icon",
-                    modifier = Modifier.size(28.dp)
-                )
+                androidx.compose.material3.IconButton(onClick = { onHistory() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_history),
+                        contentDescription = "Favorite Icon",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
